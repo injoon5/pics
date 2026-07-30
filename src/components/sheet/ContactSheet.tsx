@@ -58,10 +58,7 @@ export function ContactSheet({
     if (open && !wasOpenRef.current) void playSheetOpen();
     if (!open && wasOpenRef.current) void playSheetClose();
     wasOpenRef.current = open;
-    if (!open) {
-      setLoupeActive(false);
-      clearHold();
-    }
+    if (!open) clearHold();
   }, [open]);
 
   useEffect(() => () => clearHold(), []);
@@ -270,7 +267,7 @@ export function ContactSheet({
               <Loupe
                 photos={album.photos}
                 containerRef={sheetBodyRef}
-                active={loupeActive}
+                active={open && loupeActive}
                 pointerRef={pointerRef}
               />
             </div>
