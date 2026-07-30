@@ -29,16 +29,12 @@ export function AlbumView({ album }: { album: Album }) {
   const [mode, setMode] = useState<ViewMode>("book");
   const [index, setIndex] = useState(0);
 
-  // Drop browse mode if viewport/pointer no longer qualifies — never port sheet
-  useEffect(() => {
-    if (!canBrowse && mode === "browse") setMode("book");
-  }, [canBrowse, mode]);
-
   const onSelectIndex = useCallback((i: number) => {
     setIndex(i);
   }, []);
 
-  const showTable = canBrowse && mode === "browse";
+  const effectiveMode: ViewMode = canBrowse ? mode : "book";
+  const showTable = effectiveMode === "browse";
 
   return (
     <div className="relative min-h-dvh bg-surface text-text-primary">
@@ -53,12 +49,12 @@ export function AlbumView({ album }: { album: Album }) {
         {canBrowse ? (
           <div className="pointer-events-auto flex items-center gap-1">
             <ModeButton
-              active={mode === "book"}
+              active={effectiveMode === "book"}
               onClick={() => setMode("book")}
               label="Book"
             />
             <ModeButton
-              active={mode === "browse"}
+              active={effectiveMode === "browse"}
               onClick={() => setMode("browse")}
               label="Browse"
             />

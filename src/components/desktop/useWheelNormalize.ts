@@ -56,7 +56,10 @@ export function useWheelNormalize(
 ) {
   const lastSnapAt = useRef(0);
   const onStepRef = useRef(onStep);
-  onStepRef.current = onStep;
+
+  useEffect(() => {
+    onStepRef.current = onStep;
+  }, [onStep]);
 
   const handle = useCallback((e: WheelEvent | ReactWheelEvent) => {
     const normalized = classifyWheel(e);

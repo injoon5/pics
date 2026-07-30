@@ -27,13 +27,12 @@ function rateOk() {
   return true;
 }
 
-export async function playFlip(velocity = 0) {
-  const enabled = useUiStore.getState().soundEnabled;
-  if (!enabled || !rateOk()) return;
+/** velocity in px/s — maps to PlayOptions.velocity 0–1 */
+export async function playFlip(releaseVelocity = 0) {
+  if (!useUiStore.getState().soundEnabled || !rateOk()) return;
   await unlock();
-  const intensity = Math.min(1, Math.abs(velocity) / 2000);
-  void intensity;
-  flipSound();
+  const velocity = Math.min(1, Math.abs(releaseVelocity) / 2500);
+  flipSound({ velocity: 0.35 + velocity * 0.65 });
 }
 
 export async function playLand() {

@@ -16,13 +16,14 @@ import {
 } from "motion/react";
 import { dialDefaults, useDials } from "@/design/dials";
 import { card as cardTokens, gesture, hinge, performance } from "@/design/tokens";
-import type { Album, Photo } from "@/fixtures/types";
+import type { Album } from "@/fixtures/types";
 import { playFlip } from "@/lib/sound-player";
 import { useUiStore } from "@/store/ui";
 import { useWheelNormalize } from "@/components/desktop/useWheelNormalize";
 import { ContactSheet } from "../sheet/ContactSheet";
 import { BottomRail } from "./BottomRail";
 import { Card, TopPrint } from "./Card";
+import { CaptionBack, IntroBack, SleeveBack } from "./CardBacks";
 import { FilmCounter } from "./FilmCounter";
 import { HingeGrabber } from "./HingeGrabber";
 import { ProgressiveBlur } from "./ProgressiveBlur";
@@ -41,42 +42,25 @@ function detectCssScrollTimeline(): boolean {
   return CSS.supports("animation-timeline", "scroll()");
 }
 
-function IntroBack({ text }: { text: string }) {
-  return <p className="type-intro">{text}</p>;
-}
-
-function CaptionBack({ note }: { note?: string }) {
-  return note ? <p className="type-note text-text-secondary">{note}</p> : null;
-}
-
-function SleeveBack({
-  note,
-  colophon,
-}: {
-  note?: string;
-  colophon?: string;
-}) {
-  return (
-    <div className="flex flex-col gap-4">
-      {note ? <p className="type-note text-text-secondary">{note}</p> : null}
-      {colophon ? <p className="type-lab-stamp">{colophon}</p> : null}
-    </div>
-  );
-}
-
 function backForIndex(
   index: number,
-  photos: Photo[],
-  intro: string,
-  colophon?: string,
+  album: Album,
 ): ReactNode {
-  if (index === 0) return <IntroBack text={intro} />;
+  const photos = album.photos;
+  if (index === 0) return <IntroBack text={album.intro} />;
   if (index >= photos.length) {
     const last = photos[photos.length - 1];
-    return <SleeveBack note={last?.note} colophon={colophon} />;
+    return (
+      <SleeveBack
+        photo={last}
+        colophon={album.colophon}
+        title={album.title}
+        count={photos.length}
+      />
+    );
   }
-  const prev = photos[index - 1];
-  return <CaptionBack note={prev?.note} />;
+  const prev = photos[index - 1]!;
+  return <CaptionBack photo={prev} />;
 }
 
 export function Flipbook({ album }: FlipbookProps) {
@@ -115,16 +99,20 @@ export function Flipbook({ album }: FlipbookProps) {
   const lastSettledIndex = useUiStore((s) => s.lastSettledIndex);
   const setLastSettledIndex = useUiStore((s) => s.setLastSettledIndex);
 
-  const [useCssTimeline, setUseCssTimeline] = useState(false);
-  const [reducedMotion, setReducedMotion] = useState(false);
+  const [useCssTimeline] = useState(() =>
+    typeof window !== "undefined" ? detectCssScrollTimeline() : false,
+  );
+  const [reducedMotion, setReducedMotion] = useState(() =>
+    typeof window !== "undefined"
+      ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      : false,
+  );
   const [settledIndex, setSettledIndex] = useState(lastSettledIndex);
   const lastFlipSoundAt = useRef(-1);
 
   useEffect(() => {
-    setUseCssTimeline(detectCssScrollTimeline());
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
     const sync = () => setReducedMotion(mq.matches);
-    sync();
     mq.addEventListener("change", sync);
     return () => mq.removeEventListener("change", sync);
   }, []);
@@ -269,6 +257,7 @@ export function Flipbook({ album }: FlipbookProps) {
   return (
     <LayoutGroup id="flipbook-sheet">
     <div className="relative h-[100dvh] bg-surface text-text-primary">
+
       <div ref={scrollerRef} className="scroller" tabIndex={0} aria-label="Flipbook scroll">
         {Array.from({ length: cardCount }, (_, i) => (
           <div key={i} className="scroller-spacer" aria-hidden />
@@ -301,7 +290,7 @@ export function Flipbook({ album }: FlipbookProps) {
               <Card
                 key={i}
                 photo={photo}
-                backContent={backForIndex(i, photos, album.intro, album.colophon)}
+                backContent={backForIndex(i, album)}
                 index={i}
                 g={g}
                 axis={axis}

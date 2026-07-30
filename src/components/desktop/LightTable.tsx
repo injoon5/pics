@@ -112,11 +112,12 @@ export function LightTable({
   }, []);
 
   useEffect(() => {
-    bumpIdle();
+    const timer = setTimeout(() => setIdleWarm(true), 20_000);
+    idleTimer.current = timer;
     return () => {
-      if (idleTimer.current) clearTimeout(idleTimer.current);
+      clearTimeout(timer);
     };
-  }, [bumpIdle]);
+  }, []);
 
   useEffect(() => {
     if (!enabled) return;
