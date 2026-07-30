@@ -137,15 +137,16 @@ export async function runScenarios(page, opts) {
   }
 
   // 3b. Mid-hinge freeze — rim / thickness must be reviewable
+  // After flipThrough(3) we're settled at ~3; mid-flip THAT card (mount window includes it).
   if (mode === "screenshots") {
-    await scrollToMidFlip(page, 2);
+    await scrollToMidFlip(page, 3);
     shots.push(await shot(page, outDir, `${prefix}-03b-midflip`));
     await restoreSnap(page);
   }
 
   // Video: pause briefly mid-flip so recordings show the hinge
   if (mode === "video") {
-    await scrollToMidFlip(page, 3);
+    await scrollToMidFlip(page, 4);
     await settle(page, 700);
     await restoreSnap(page);
   }

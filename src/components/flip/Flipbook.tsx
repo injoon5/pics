@@ -6,6 +6,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 import {
@@ -42,12 +43,39 @@ function detectCssScrollTimeline(): boolean {
   return CSS.supports("animation-timeline", "scroll()");
 }
 
+function subscribeNoop() {
+  return () => {};
+}
+
+function getCssTimelineSnapshot() {
+  return detectCssScrollTimeline();
+}
+
+function getCssTimelineServerSnapshot() {
+  return false;
+}
+
+function getReducedMotionSnapshot() {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function getReducedMotionServerSnapshot() {
+  return false;
+}
+
+function subscribeReducedMotion(onStoreChange: () => void) {
+  const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+  mq.addEventListener("change", onStoreChange);
+  return () => mq.removeEventListener("change", onStoreChange);
+}
+
 function backForIndex(
   index: number,
   album: Album,
   expanded: boolean,
 ): ReactNode {
   const photos = album.photos;
+  // Card 0 verso = album intro (cover). Remaining versos caption the print on that card's recto.
   if (index === 0) return <IntroBack text={album.intro} />;
   if (index >= photos.length) {
     const last = photos[photos.length - 1];
@@ -60,8 +88,7 @@ function backForIndex(
       />
     );
   }
-  const prev = photos[index - 1]!;
-  return <CaptionBack photo={prev} expanded={expanded} />;
+  return <CaptionBack photo={photos[index]!} expanded={expanded} />;
 }
 
 export function Flipbook({ album }: FlipbookProps) {
@@ -99,13 +126,15 @@ export function Flipbook({ album }: FlipbookProps) {
   const setSheetOpen = useUiStore((s) => s.setSheetOpen);
   const setLastSettledIndex = useUiStore((s) => s.setLastSettledIndex);
 
-  const [useCssTimeline] = useState(() =>
-    typeof window !== "undefined" ? detectCssScrollTimeline() : false,
+  const useCssTimeline = useSyncExternalStore(
+    subscribeNoop,
+    getCssTimelineSnapshot,
+    getCssTimelineServerSnapshot,
   );
-  const [reducedMotion, setReducedMotion] = useState(() =>
-    typeof window !== "undefined"
-      ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
-      : false,
+  const reducedMotion = useSyncExternalStore(
+    subscribeReducedMotion,
+    getReducedMotionSnapshot,
+    getReducedMotionServerSnapshot,
   );
   const [settledIndex, setSettledIndex] = useState(0);
   const lastFlipSoundAt = useRef(-1);
@@ -113,10 +142,6 @@ export function Flipbook({ album }: FlipbookProps) {
 
   useEffect(() => {
     hydrateSoundFromStorage();
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const sync = () => setReducedMotion(mq.matches);
-    mq.addEventListener("change", sync);
-    return () => mq.removeEventListener("change", sync);
   }, []);
 
   useEffect(() => {
@@ -136,9 +161,13 @@ export function Flipbook({ album }: FlipbookProps) {
     return y / h;
   });
 
+  // Look one card behind so reverse flips / mid-hinge freezes stay mounted.
   const mountedStart = Math.max(
     0,
-    Math.min(settledIndex, Math.max(0, cardCount - performance.mountedCards)),
+    Math.min(
+      Math.max(0, settledIndex - 1),
+      Math.max(0, cardCount - performance.mountedCards),
+    ),
   );
   const mountedIndices = useMemo(() => {
     const out: number[] = [];
@@ -317,7 +346,7 @@ export function Flipbook({ album }: FlipbookProps) {
           const photo = i < photos.length ? photos[i]! : null;
           return (
             <Card
-              key={i}
+              key={`${i}-${useCssTimeline ? "css" : "mv"}`}
               photo={photo}
               backContent={backForIndex(i, album, collapsed)}
               index={i}

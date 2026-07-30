@@ -176,6 +176,11 @@ body {
 }
 
 /* Stage / card geometry */
+[data-harness="flipbook"] {
+  /* Hoist named timeline so fixed .stage cards (siblings of .scroller) can bind */
+  timeline-scope: --flipbook;
+}
+
 .stage {
   perspective: 1400px;
   perspective-origin: 50% var(--hinge-y);

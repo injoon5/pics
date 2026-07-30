@@ -147,7 +147,7 @@ export const sound = {
 } as const;
 
 export const performance = {
-  mountedCards: 3,
+  mountedCards: 4,
   maxBlurLayers: 4,
   jsPerFrameMs: 4,
 } as const;

@@ -143,7 +143,7 @@ export function Card({
 
   return (
     <motion.div
-      className={`card${useCssTimeline && !reducedMotion ? " card--css-flip" : ""}`}
+      className={useCssTimeline ? "card card--css-flip" : "card"}
       style={
         useCssTimeline || reducedMotion
           ? { ...cssVars, zIndex: zMv, boxShadow }
@@ -180,11 +180,7 @@ export function Card({
                 draggable={false}
               />
             </div>
-            <div className="mt-2 flex justify-end">
-              <span className="type-frame text-text-tertiary">
-                {frameLabel(index)}
-              </span>
-            </div>
+            {/* Frame # lives on TopPrint (settled) — avoid ghost 03/04 desync near hinge */}
           </div>
         ) : (
           <div className="relative flex h-full flex-col justify-end bg-surface p-6 pb-8">
