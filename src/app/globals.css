@@ -154,17 +154,17 @@ body {
 
 .type-sleeve-label {
   font-variation-settings: "opsz" 14, "wght" 500, "wdth" 92;
-  color: var(--color-accent);
+  color: var(--color-text-primary);
 }
 
 .type-lab-stamp {
   font-variation-settings: "opsz" 14, "wght" 450, "wdth" 84;
   font-variant-numeric: tabular-nums;
-  color: color-mix(in oklch, var(--color-china-700) 70%, transparent);
+  color: var(--color-text-tertiary);
 }
 
 [data-appearance="dark"] .type-lab-stamp {
-  color: color-mix(in oklch, var(--color-china-300) 70%, transparent);
+  color: var(--color-text-tertiary);
 }
 
 /* Stage / card geometry */
@@ -435,7 +435,8 @@ body {
 
 @media (hover: hover) and (pointer: fine) {
   .sleeve:hover {
-    transform: translateY(-2px);
+    /* Use translate so seeded rotate() on the element is not clobbered */
+    translate: 0 -2px;
   }
 }
 

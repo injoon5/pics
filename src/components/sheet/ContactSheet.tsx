@@ -10,7 +10,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { Dialog } from "@base-ui/react/dialog";
-import { AnimatePresence, LayoutGroup, motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import clsx from "clsx";
 import { ease, gesture, motion as motionTokens } from "@/design/tokens";
 import { frameLabel } from "@/lib/format";
@@ -140,8 +140,8 @@ export function ContactSheet({
   }, []);
 
   return (
-    <LayoutGroup id="flipbook-sheet">
-      {/* Local portal host so Motion layoutId stays in-tree */}
+    <>
+      {/* Local portal host so Motion layoutId stays in Flipbook's LayoutGroup */}
       <div ref={portalContainerRef} className="pointer-events-none fixed inset-0 z-[90]" />
 
       <Dialog.Root
@@ -221,9 +221,12 @@ export function ContactSheet({
                           style={{ touchAction: "none", WebkitTouchCallout: "none" }}
                           aria-current={isCurrent ? "true" : undefined}
                           aria-label={`Frame ${frameLabel(index)}, ${photo.alt}`}
-                          onClick={(e) => {
-                            // Selection handled on pointerup to distinguish hold
-                            e.preventDefault();
+                          onClick={() => {
+                            // Pointer path sets didSelectRef; keyboard activation lands here
+                            if (loupeActive || didSelectRef.current) return;
+                            didSelectRef.current = true;
+                            onSelectIndex(index);
+                            onOpenChange(false);
                           }}
                         >
                           <div
@@ -289,6 +292,6 @@ export function ContactSheet({
           }
         }
       `}</style>
-    </LayoutGroup>
+    </>
   );
 }

@@ -109,6 +109,7 @@ export function Flipbook({ album }: FlipbookProps) {
   );
   const [settledIndex, setSettledIndex] = useState(lastSettledIndex);
   const lastFlipSoundAt = useRef(-1);
+  const lastSettleTs = useRef(0);
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -147,14 +148,19 @@ export function Flipbook({ album }: FlipbookProps) {
     (index: number) => {
       const next = Math.max(0, Math.min(index, maxG));
       if (next === settledIndex) return;
+      const now = performance.now();
+      const elapsedMs = Math.max(1, now - (lastSettleTs.current || now));
+      const px = Math.abs(next - settledIndex) * pageH;
+      const releaseVelocity = (px / elapsedMs) * 1000;
+      lastSettleTs.current = now;
       setSettledIndex(next);
       setLastSettledIndex(next);
       if (next !== lastFlipSoundAt.current) {
         lastFlipSoundAt.current = next;
-        void playFlip();
+        void playFlip(releaseVelocity);
       }
     },
-    [maxG, settledIndex, setLastSettledIndex],
+    [maxG, pageH, settledIndex, setLastSettledIndex],
   );
 
   useEffect(() => {
@@ -264,43 +270,43 @@ export function Flipbook({ album }: FlipbookProps) {
         ))}
       </div>
 
-      {!sheetOpen && (
-        <div
-          ref={stageRef}
-          className="stage"
-          data-axis={axis}
-          style={{
-            height: stableHeight || "100dvh",
-            perspective: `${perspective}px`,
-            // chromeInset available for future layout; CSS var already set
-            ["--chrome-inset-js" as string]: `${chromeInset}px`,
-          }}
-        >
-          {topPhoto ? <TopPrint photo={topPhoto} visible /> : null}
+      <div
+        ref={stageRef}
+        className="stage"
+        data-axis={axis}
+        aria-hidden={sheetOpen}
+        style={{
+          height: stableHeight || "100dvh",
+          perspective: `${perspective}px`,
+          // Keep mounted during sheet so layoutId flight has a source
+          visibility: sheetOpen ? "hidden" : "visible",
+          ["--chrome-inset-js" as string]: `${chromeInset}px`,
+        }}
+      >
+        {topPhoto ? <TopPrint photo={topPhoto} visible /> : null}
 
-          <StackHairlines
-            remaining={remaining}
-            total={photos.length}
-            seedId={album.slug}
-          />
+        <StackHairlines
+          remaining={remaining}
+          total={photos.length}
+          seedId={album.slug}
+        />
 
-          {mountedIndices.map((i) => {
-            const photo = i < photos.length ? photos[i]! : null;
-            return (
-              <Card
-                key={i}
-                photo={photo}
-                backContent={backForIndex(i, album)}
-                index={i}
-                g={g}
-                axis={axis}
-                useCssTimeline={useCssTimeline && !reducedMotion}
-                reducedMotion={reducedMotion}
-              />
-            );
-          })}
-        </div>
-      )}
+        {mountedIndices.map((i) => {
+          const photo = i < photos.length ? photos[i]! : null;
+          return (
+            <Card
+              key={i}
+              photo={photo}
+              backContent={backForIndex(i, album)}
+              index={i}
+              g={g}
+              axis={axis}
+              useCssTimeline={useCssTimeline && !reducedMotion}
+              reducedMotion={reducedMotion}
+            />
+          );
+        })}
+      </div>
 
       <ProgressiveBlur bandColor={bandTop} edge="top" />
       <ProgressiveBlur bandColor={bandBottom} edge="bottom" />
@@ -314,10 +320,11 @@ export function Flipbook({ album }: FlipbookProps) {
         album={album}
         open={sheetOpen}
         onOpenChange={setSheetOpen}
-        currentIndex={settledIndex}
-        onSelectIndex={(index) => {
+        currentIndex={settledIndex >= 1 ? settledIndex - 1 : -1}
+        onSelectIndex={(photoIndex) => {
           setSheetOpen(false);
-          scrollToIndex(index, "auto");
+          // Photo i lives on card i; settled scroll index is i+1 once that print is on top
+          scrollToIndex(photoIndex + 1, "auto");
         }}
       />
     </div>
