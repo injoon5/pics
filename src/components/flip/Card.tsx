@@ -164,7 +164,11 @@ export function Card({
           <div className="relative flex h-full flex-col bg-surface-recto" style={matPad}>
             <div
               className="relative min-h-0 flex-1 overflow-hidden"
-              style={{ borderRadius: cardTokens.imageRadius }}
+              style={{
+                borderRadius: cardTokens.imageRadius,
+                boxShadow:
+                  "inset 0 0 0 1px oklch(0 0 0 / 0.06), 0 0 0 0.5px oklch(1 0 0 / 0.55)",
+              }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
