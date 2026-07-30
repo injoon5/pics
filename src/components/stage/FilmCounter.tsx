@@ -31,7 +31,7 @@ export function FilmCounter({ index, total }: { index: number; total: number }) 
 
   return (
     <div
-      className="film-counter hit-40 pointer-events-none flex items-baseline gap-[0.15em] text-[12px] tabular-nums"
+      className="film-counter hit-40 pointer-events-none relative flex items-baseline gap-[0.15em] text-[12px] tabular-nums"
       aria-label={`Frame ${current} of ${total}`}
     >
       <span className="text-accent">

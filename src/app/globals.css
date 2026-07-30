@@ -518,10 +518,14 @@
   }
 
   /* §7.5 — the hinge grabber, browse toggle and film counter all need 40×40
-     without their visual size growing. */
-  .hit-40 {
-    position: relative;
-  }
+     without their visual size growing.
+
+     Note what this does NOT do: set `position`. It is declared in the
+     utilities layer after Tailwind's own, so a `position` here would win over
+     `fixed` on the same element — which is exactly how the browse button ended
+     up in normal flow 3,600px down the document, visible in a screenshot only
+     because the test harness scrolled to find it. The element must bring its
+     own positioning; this only expands the target. */
   .hit-40::after {
     content: "";
     position: absolute;

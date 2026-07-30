@@ -158,14 +158,27 @@ export function Flipbook({
   const settleTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const lastSounded = useRef(0);
 
+  /* The velocity that matters is the one the gesture *had*, not the one it has
+     at rest. Reading `useVelocity` inside the settle handler would sample it
+     after the scroll has stopped, which is zero by definition — every flip
+     would then sound identical and §7.6's "a gentle scroll should sound
+     different from a hard flick" would be quietly unmet. So keep the peak of
+     the run and consume it on landing. */
+  const peakVelocity = useRef(0);
+  useMotionValueEvent(velocity, "change", (v) => {
+    const abs = Math.abs(v);
+    if (abs > peakVelocity.current) peakVelocity.current = abs;
+  });
+
   const onSettle = useCallback(() => {
     const landed = Math.round(g.get());
     if (landed !== lastSounded.current) {
       lastSounded.current = landed;
-      play("flip", velocityFromRelease(velocity.get()));
+      play("flip", velocityFromRelease(peakVelocity.current));
     }
+    peakVelocity.current = 0;
     useUi.getState().setLastSettledIndex(landed);
-  }, [g, velocity]);
+  }, [g]);
 
   useEffect(() => {
     const onScrollEnd = () => onSettle();

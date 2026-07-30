@@ -15,7 +15,7 @@
 
 import { useCallback, useRef } from "react";
 import { durations, gesture, cssEase } from "@/design/tokens";
-import { rubberband } from "@/lib/gesture";
+import { project, rubberband, VelocityTracker } from "@/lib/gesture";
 
 export function useHingeDrag(onOpen: () => void) {
   const state = useRef({
@@ -23,6 +23,7 @@ export function useHingeDrag(onOpen: () => void) {
     startY: 0,
     committed: false,
     opened: false,
+    tracker: new VelocityTracker(),
   });
 
   const reset = useCallback((el: HTMLElement | null) => {
@@ -37,7 +38,12 @@ export function useHingeDrag(onOpen: () => void) {
   const onPointerDown = useCallback((e: React.PointerEvent<HTMLElement>) => {
     // A second finger mid-drag would jump the hinge (§3.4).
     if (state.current.id !== -1) return;
-    state.current = { id: e.pointerId, startY: e.clientY, committed: false, opened: false };
+    state.current.id = e.pointerId;
+    state.current.startY = e.clientY;
+    state.current.committed = false;
+    state.current.opened = false;
+    state.current.tracker.reset();
+    state.current.tracker.add(e.clientY);
     e.currentTarget.setPointerCapture(e.pointerId);
   }, []);
 
@@ -47,6 +53,7 @@ export function useHingeDrag(onOpen: () => void) {
       if (s.id !== e.pointerId || s.opened) return;
 
       const dy = e.clientY - s.startY;
+      s.tracker.add(e.clientY);
       if (!s.committed) {
         if (Math.abs(dy) < gesture.hysteresis) return;
         s.committed = true;
@@ -76,12 +83,29 @@ export function useHingeDrag(onOpen: () => void) {
       const s = state.current;
       if (s.id !== e.pointerId) return;
       state.current.id = -1;
+
+      /* §3.4 — snap to where the gesture was *going*, not where it stopped.
+         The pad itself never needs this: `scroll-snap-stop: always` makes the
+         browser the snapper there, and it does its own fling projection. This
+         is the one place the app decides a threshold itself, so this is where
+         Apple's projection belongs — a short, fast flick down opens the sheet
+         even though the finger never travelled the full 88px. */
+      if (!s.opened && s.committed) {
+        const dy = e.clientY - s.startY;
+        if (dy > 0 && dy + project(s.tracker.velocity) > gesture.sheetOpenThreshold) {
+          s.opened = true;
+          reset(e.currentTarget);
+          onOpen();
+          return;
+        }
+      }
+
       if (!s.opened) reset(e.currentTarget);
       // Committed drags are not taps: swallow the click so a failed pull
       // doesn't open the thing it just refused to open.
       if (s.committed) e.preventDefault();
     },
-    [reset],
+    [onOpen, reset],
   );
 
   return {
