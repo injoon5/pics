@@ -43,8 +43,9 @@ export function AlbumView({ album }: { album: Album }) {
         <Link
           href="/"
           className={cn(
-            "pointer-events-auto rounded-sm px-2 py-1 text-[0.75rem]",
-            "bg-surface/80 text-text-secondary backdrop-blur-[2px]",
+            "pointer-events-auto rounded-sm px-2.5 py-1 text-[0.75rem]",
+            "bg-surface text-text-primary",
+            "shadow-[0_1px_2px_oklch(0_0_0/0.12),inset_0_0_0_1px_oklch(0_0_0/0.06)]",
             "type-bench-count hover:text-accent",
           )}
         >
@@ -55,7 +56,8 @@ export function AlbumView({ album }: { album: Album }) {
           <div
             className={cn(
               "pointer-events-auto flex items-center gap-0.5 rounded-sm px-1 py-0.5",
-              "bg-surface/80 backdrop-blur-[2px]",
+              "bg-surface",
+              "shadow-[0_1px_2px_oklch(0_0_0/0.12),inset_0_0_0_1px_oklch(0_0_0/0.06)]",
             )}
           >
             <ModeButton

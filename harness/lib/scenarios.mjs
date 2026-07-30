@@ -66,9 +66,27 @@ async function flipThrough(page, count = 4) {
 async function scrollToMidFlip(page, cardIndex = 2) {
   await page.locator('[data-harness="scroller"]').evaluate((el, i) => {
     const h = el.clientHeight;
+    // Mandatory snap would yank us to a settled page — kill it for the freeze.
+    el.style.scrollSnapType = "none";
     el.scrollTop = i * h + h * 0.5;
   }, cardIndex);
-  await settle(page, 250);
+  // rAF so Motion/CSS timeline paints the mid-hinge before we shoot
+  await page.evaluate(
+    () =>
+      new Promise((r) => {
+        requestAnimationFrame(() => requestAnimationFrame(r));
+      }),
+  );
+  await settle(page, 120);
+}
+
+async function restoreSnap(page) {
+  await page.locator('[data-harness="scroller"]').evaluate((el) => {
+    el.style.scrollSnapType = "";
+    const h = el.clientHeight || 1;
+    el.scrollTop = Math.round(el.scrollTop / h) * h;
+  });
+  await settle(page, 400);
 }
 
 async function openSheet(page) {
@@ -122,23 +140,14 @@ export async function runScenarios(page, opts) {
   if (mode === "screenshots") {
     await scrollToMidFlip(page, 2);
     shots.push(await shot(page, outDir, `${prefix}-03b-midflip`));
-    // Snap to settled before sheet
-    await page.locator('[data-harness="scroller"]').evaluate((el) => {
-      const h = el.clientHeight;
-      el.scrollTop = Math.round(el.scrollTop / h) * h;
-    });
-    await settle(page, 400);
+    await restoreSnap(page);
   }
 
   // Video: pause briefly mid-flip so recordings show the hinge
   if (mode === "video") {
     await scrollToMidFlip(page, 3);
     await settle(page, 700);
-    await page.locator('[data-harness="scroller"]').evaluate((el) => {
-      const h = el.clientHeight;
-      el.scrollTop = Math.round(el.scrollTop / h) * h;
-    });
-    await settle(page, 400);
+    await restoreSnap(page);
   }
 
   // 4. Contact sheet
