@@ -39,15 +39,25 @@ export function AlbumView({ album }: { album: Album }) {
   return (
     <div className="relative min-h-dvh bg-surface text-text-primary">
       <header className="pointer-events-none absolute inset-x-0 top-0 z-[60] flex items-start justify-between px-5 pt-5">
+        {/* Scrim so link stays readable over dark prints */}
         <Link
           href="/"
-          className="pointer-events-auto type-lab-stamp text-[0.75rem] text-text-secondary hover:text-accent"
+          className={cn(
+            "pointer-events-auto rounded-sm px-2 py-1 text-[0.75rem]",
+            "bg-surface/80 text-text-secondary backdrop-blur-[2px]",
+            "type-bench-count hover:text-accent",
+          )}
         >
           ← Sleeves
         </Link>
 
         {canBrowse ? (
-          <div className="pointer-events-auto flex items-center gap-1">
+          <div
+            className={cn(
+              "pointer-events-auto flex items-center gap-0.5 rounded-sm px-1 py-0.5",
+              "bg-surface/80 backdrop-blur-[2px]",
+            )}
+          >
             <ModeButton
               active={effectiveMode === "book"}
               onClick={() => setMode("book")}
@@ -69,7 +79,7 @@ export function AlbumView({ album }: { album: Album }) {
           onSelectIndex={onSelectIndex}
         />
       ) : (
-        <Flipbook album={album} />
+        <Flipbook key={album.slug} album={album} />
       )}
     </div>
   );
@@ -89,9 +99,9 @@ function ModeButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "type-lab-stamp rounded-[2px] px-2.5 py-1 text-[0.75rem] transition-colors",
+        "type-bench-count rounded-[2px] px-2 py-1 text-[0.75rem] transition-colors",
         active
-          ? "bg-surface-sunk text-accent"
+          ? "text-accent"
           : "text-text-tertiary hover:text-text-secondary",
       )}
       aria-pressed={active}

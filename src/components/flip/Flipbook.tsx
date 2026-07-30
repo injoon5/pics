@@ -45,6 +45,7 @@ function detectCssScrollTimeline(): boolean {
 function backForIndex(
   index: number,
   album: Album,
+  expanded: boolean,
 ): ReactNode {
   const photos = album.photos;
   if (index === 0) return <IntroBack text={album.intro} />;
@@ -60,7 +61,7 @@ function backForIndex(
     );
   }
   const prev = photos[index - 1]!;
-  return <CaptionBack photo={prev} />;
+  return <CaptionBack photo={prev} expanded={expanded} />;
 }
 
 export function Flipbook({ album }: FlipbookProps) {
@@ -96,7 +97,6 @@ export function Flipbook({ album }: FlipbookProps) {
 
   const sheetOpen = useUiStore((s) => s.sheetOpen);
   const setSheetOpen = useUiStore((s) => s.setSheetOpen);
-  const lastSettledIndex = useUiStore((s) => s.lastSettledIndex);
   const setLastSettledIndex = useUiStore((s) => s.setLastSettledIndex);
 
   const [useCssTimeline] = useState(() =>
@@ -107,7 +107,7 @@ export function Flipbook({ album }: FlipbookProps) {
       ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
       : false,
   );
-  const [settledIndex, setSettledIndex] = useState(lastSettledIndex);
+  const [settledIndex, setSettledIndex] = useState(0);
   const lastFlipSoundAt = useRef(-1);
   const lastSettleTs = useRef(0);
 
@@ -298,7 +298,14 @@ export function Flipbook({ album }: FlipbookProps) {
           ["--chrome-inset-js" as string]: `${chromeInset}px`,
         }}
       >
-        {topPhoto ? <TopPrint photo={topPhoto} visible /> : null}
+        {topPhoto ? (
+          <TopPrint
+            photo={topPhoto}
+            visible
+            axis={axis}
+            frameIndex={Math.min(settledIndex, photos.length) - 1}
+          />
+        ) : null}
 
         <StackHairlines
           remaining={remaining}
@@ -312,7 +319,7 @@ export function Flipbook({ album }: FlipbookProps) {
             <Card
               key={i}
               photo={photo}
-              backContent={backForIndex(i, album)}
+              backContent={backForIndex(i, album, collapsed)}
               index={i}
               g={g}
               axis={axis}

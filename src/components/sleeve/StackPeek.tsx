@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import { hash, mulberry32 } from "@/design/seed";
-import { motion, sleeve, stack } from "@/design/tokens";
+import { motion, radii, sleeve, stack } from "@/design/tokens";
 import type { Photo } from "@/fixtures/types";
+import { cn } from "@/lib/cn";
 
 export function StackPeek({
   photos,
@@ -67,8 +68,11 @@ export function StackPeek({
       {angled.map(({ photo, angle }, i) => (
         <div
           key={photo.id}
-          className="absolute inset-x-[8%] bottom-0 overflow-hidden rounded-[2px] bg-surface-recto"
+          className={cn(
+            "absolute inset-x-[8%] bottom-0 overflow-hidden bg-surface-recto",
+          )}
           style={{
+            borderRadius: radii.image,
             height: `${sleeve.topPeekHeight * 100}%`,
             zIndex: i + 1,
             transform: `rotate(${angle}deg)`,

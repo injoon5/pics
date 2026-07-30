@@ -183,8 +183,8 @@ export function Card({
             </div>
           </div>
         ) : (
-          <div className="flex h-full items-center justify-center bg-surface-recto p-6">
-            <p className="type-lab-stamp text-center">—</p>
+          <div className="relative flex h-full flex-col justify-end bg-surface p-6 pb-8">
+            <p className="type-note text-text-tertiary">That&apos;s the roll.</p>
           </div>
         )}
         <div className="paper-grain" aria-hidden />
@@ -198,13 +198,20 @@ export function Card({
   );
 }
 
-/** Static top-half print for the settled (already flipped) photo. */
+/** Static settled print — top half (stack) or left half (book). */
 export interface TopPrintProps {
   photo: Photo;
   visible: boolean;
+  axis?: MediaAxis;
+  frameIndex?: number;
 }
 
-export function TopPrint({ photo, visible }: TopPrintProps) {
+export function TopPrint({
+  photo,
+  visible,
+  axis = "x",
+  frameIndex = 0,
+}: TopPrintProps) {
   if (!visible) return null;
 
   const matPad: CSSProperties = {
@@ -214,23 +221,42 @@ export function TopPrint({ photo, visible }: TopPrintProps) {
     paddingBottom: cardTokens.matBottom,
   };
 
+  const isBook = axis === "y";
+
   return (
     <div
-      className="pointer-events-none absolute left-0 right-0 z-[5] overflow-hidden"
-      style={{
-        top: 0,
-        height: "var(--hinge-y)",
-      }}
+      className="pointer-events-none absolute z-[5] overflow-hidden"
+      style={
+        isBook
+          ? {
+              top: 0,
+              left: 0,
+              width: "var(--hinge-y)",
+              height: "100%",
+            }
+          : {
+              top: 0,
+              left: 0,
+              right: 0,
+              height: "var(--hinge-y)",
+            }
+      }
       aria-hidden
+      data-harness="top-print"
     >
       <div
-        className="absolute inset-x-0 bottom-0 flex h-full flex-col bg-surface-recto"
+        className="absolute inset-0 flex flex-col bg-surface"
         style={matPad}
       >
         <motion.div
           layoutId={`print-${photo.id}`}
           className="relative min-h-0 flex-1 overflow-hidden"
-          style={{ borderRadius: cardTokens.imageRadius }}
+          style={{
+            borderRadius: cardTokens.imageRadius,
+            // Keep dark prints reading as objects — half-pixel cut edge
+            boxShadow:
+              "inset 0 0 0 1px oklch(0 0 0 / 0.06), 0 0 0 0.5px oklch(1 0 0 / 0.55)",
+          }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -242,6 +268,11 @@ export function TopPrint({ photo, visible }: TopPrintProps) {
             draggable={false}
           />
         </motion.div>
+        <div className="mt-2 flex justify-end">
+          <span className="type-frame text-text-tertiary">
+            {frameLabel(frameIndex)}
+          </span>
+        </div>
         <div className="paper-grain" aria-hidden />
       </div>
     </div>

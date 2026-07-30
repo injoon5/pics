@@ -200,7 +200,7 @@ export function ContactSheet({
               onContextMenu={onContextMenu}
             >
               <div className="mx-auto flex max-w-3xl gap-1">
-                <Sprockets side="left" className="hidden w-3.5 shrink-0 text-text-tertiary sm:block" />
+                <Sprockets side="left" className="w-2.5 shrink-0 text-text-tertiary sm:w-3.5" />
 
                 <div className="grid min-w-0 flex-1 grid-cols-3 gap-x-2 gap-y-4 py-2">
                   <AnimatePresence>
@@ -265,7 +265,7 @@ export function ContactSheet({
                   </AnimatePresence>
                 </div>
 
-                <Sprockets side="right" className="hidden w-3.5 shrink-0 text-text-tertiary sm:block" />
+                <Sprockets side="right" className="w-2.5 shrink-0 text-text-tertiary sm:w-3.5" />
               </div>
 
               <Loupe

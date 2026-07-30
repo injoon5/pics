@@ -62,6 +62,15 @@ async function flipThrough(page, count = 4) {
   }
 }
 
+/** Scroll to mid-hinge (~50% through a card) so rim/thickness is visible. */
+async function scrollToMidFlip(page, cardIndex = 2) {
+  await page.locator('[data-harness="scroller"]').evaluate((el, i) => {
+    const h = el.clientHeight;
+    el.scrollTop = i * h + h * 0.5;
+  }, cardIndex);
+  await settle(page, 250);
+}
+
 async function openSheet(page) {
   const grabber = page.getByRole("button", { name: /open contact sheet/i });
   await grabber.click();
@@ -103,10 +112,33 @@ export async function runScenarios(page, opts) {
     shots.push(await shot(page, outDir, `${prefix}-02-intro`));
   }
 
-  // 3. Flip a few cards
+  // 3. Flip a few cards to settled midroll
   await flipThrough(page, mode === "video" ? 6 : 3);
   if (mode === "screenshots") {
     shots.push(await shot(page, outDir, `${prefix}-03-midroll`));
+  }
+
+  // 3b. Mid-hinge freeze — rim / thickness must be reviewable
+  if (mode === "screenshots") {
+    await scrollToMidFlip(page, 2);
+    shots.push(await shot(page, outDir, `${prefix}-03b-midflip`));
+    // Snap to settled before sheet
+    await page.locator('[data-harness="scroller"]').evaluate((el) => {
+      const h = el.clientHeight;
+      el.scrollTop = Math.round(el.scrollTop / h) * h;
+    });
+    await settle(page, 400);
+  }
+
+  // Video: pause briefly mid-flip so recordings show the hinge
+  if (mode === "video") {
+    await scrollToMidFlip(page, 3);
+    await settle(page, 700);
+    await page.locator('[data-harness="scroller"]').evaluate((el) => {
+      const h = el.clientHeight;
+      el.scrollTop = Math.round(el.scrollTop / h) * h;
+    });
+    await settle(page, 400);
   }
 
   // 4. Contact sheet

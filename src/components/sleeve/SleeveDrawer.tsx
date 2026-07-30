@@ -14,7 +14,7 @@ export function SleeveDrawer({ albums }: { albums: Album[] }) {
         <p className="type-title text-text-secondary">No albums yet.</p>
         <Link
           href="/studio"
-          className="type-sleeve-label text-[0.9375rem] text-accent underline-offset-4 hover:underline"
+          className="type-lab-stamp text-[0.75rem] text-accent underline-offset-4 hover:underline"
         >
           Start one →
         </Link>

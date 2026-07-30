@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import { hash, mulberry32 } from "@/design/seed";
-import { motion, sleeve } from "@/design/tokens";
+import { motion, radii, sleeve } from "@/design/tokens";
 import type { Album } from "@/fixtures/types";
 import { cn } from "@/lib/cn";
 import { StackPeek } from "./StackPeek";
@@ -61,10 +61,11 @@ export function Sleeve({ album }: { album: Album }) {
         {/* Paper wallet body + flap */}
         <div
           className={cn(
-            "relative -mt-1 overflow-hidden rounded-[3px] bg-surface-recto",
+            "relative -mt-1 overflow-hidden bg-surface-recto",
             "shadow-[inset_0_0_0_1px_oklch(0_0_0/0.055),0_1px_0_oklch(1_0_0/0.55)]",
           )}
           style={{
+            borderRadius: radii.card,
             transform: pressed
               ? `perspective(600px) rotateX(-${sleeve.flapLiftDeg}deg)`
               : "perspective(600px) rotateX(0deg)",
@@ -72,35 +73,51 @@ export function Sleeve({ album }: { album: Album }) {
             transition: `transform ${motion.sleeveFlapMs}ms var(--ease-drawer)`,
           }}
         >
-          {/* Press highlight */}
           <div
             className="pointer-events-none absolute inset-0 z-10 transition-opacity"
             style={{
               opacity: pressed ? 1 : 0,
               transitionDuration: `${motion.pressMs}ms`,
               background:
-                "linear-gradient(180deg, color-mix(in oklch, var(--color-accent) 8%, transparent), transparent 55%)",
+                "linear-gradient(180deg, color-mix(in oklch, var(--color-text-primary) 6%, transparent), transparent 55%)",
             }}
           />
 
           <div className="paper-grain opacity-[0.04]" />
 
-          <div className="relative flex flex-col gap-2 px-4 pb-4 pt-5">
-            <p
-              className="type-sleeve-label text-[0.9375rem] leading-snug"
+          <div className="relative flex flex-col gap-3 px-4 pb-4 pt-5">
+            {/* Wax-pencil label plate — chinagraph stroke, ink lettering */}
+            <div
+              className="relative inline-block max-w-full self-start px-2 py-1"
               style={{
                 transform: `rotate(${sleeve.labelRotate}deg)`,
                 transformOrigin: "0% 50%",
+                boxShadow: "inset 0 0 0 1.5px var(--color-accent)",
+                borderRadius: 1,
               }}
             >
-              {album.title}
-            </p>
+              <p className="type-sleeve-label text-[0.9375rem] leading-snug">
+                {album.title}
+              </p>
+            </div>
+
             {album.subtitle ? (
               <p className="type-note text-text-tertiary text-[0.8125rem]">
                 {album.subtitle}
               </p>
             ) : null}
-            <p className="type-lab-stamp mt-1 text-[0.75rem]">{stamp}</p>
+
+            {/* Lab stamp — faded china, slightly skewed */}
+            <p
+              className="type-lab-stamp mt-0.5 self-end text-[0.7rem]"
+              style={{
+                transform: "rotate(0.6deg)",
+                opacity: sleeve.stampOpacity,
+                letterSpacing: "0.04em",
+              }}
+            >
+              {stamp}
+            </p>
           </div>
         </div>
       </div>

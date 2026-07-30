@@ -16,7 +16,7 @@ export default function HomePage() {
     <main className="min-h-dvh bg-surface text-text-primary">
       <header className="px-6 pt-10 pb-2 sm:px-10">
         <h1 className="type-title">Flipbook</h1>
-        <p className="type-lab-stamp mt-2 text-[0.75rem]">
+        <p className="type-bench-count mt-2 text-[0.75rem]">
           {String(published.length).padStart(2, "0")} sleeves on the bench
         </p>
       </header>
