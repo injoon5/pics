@@ -18,7 +18,7 @@ import { dialDefaults, useDials } from "@/design/dials";
 import { card as cardTokens, gesture, hinge, performance } from "@/design/tokens";
 import type { Album } from "@/fixtures/types";
 import { playFlip } from "@/lib/sound-player";
-import { useUiStore } from "@/store/ui";
+import { hydrateSoundFromStorage, useUiStore } from "@/store/ui";
 import { useWheelNormalize } from "@/components/desktop/useWheelNormalize";
 import { ContactSheet } from "../sheet/ContactSheet";
 import { BottomRail } from "./BottomRail";
@@ -112,6 +112,7 @@ export function Flipbook({ album }: FlipbookProps) {
   const lastSettleTs = useRef(0);
 
   useEffect(() => {
+    hydrateSoundFromStorage();
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
     const sync = () => setReducedMotion(mq.matches);
     mq.addEventListener("change", sync);
@@ -267,9 +268,18 @@ export function Flipbook({ album }: FlipbookProps) {
 
   return (
     <LayoutGroup id="flipbook-sheet">
-    <div className="relative h-[100dvh] bg-surface text-text-primary">
+    <div
+      className="relative h-[100dvh] bg-surface text-text-primary"
+      data-harness="flipbook"
+    >
 
-      <div ref={scrollerRef} className="scroller" tabIndex={0} aria-label="Flipbook scroll">
+      <div
+        ref={scrollerRef}
+        className="scroller"
+        tabIndex={0}
+        aria-label="Flipbook scroll"
+        data-harness="scroller"
+      >
         {Array.from({ length: cardCount }, (_, i) => (
           <div key={i} className="scroller-spacer" aria-hidden />
         ))}

@@ -6,7 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "harness": "node harness/capture.mjs",
+    "harness:screenshots": "node harness/capture.mjs screenshots",
+    "harness:video": "node harness/capture.mjs video",
+    "harness:video:audio": "node harness/capture.mjs video --audio",
+    "harness:all": "node harness/capture.mjs all --audio"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
@@ -33,6 +38,7 @@
     "dialkit": "^1.4.3",
     "eslint": "^9",
     "eslint-config-next": "16.2.12",
+    "playwright": "^1.62.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

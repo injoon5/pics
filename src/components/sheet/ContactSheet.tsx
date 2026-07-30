@@ -158,6 +158,7 @@ export function ContactSheet({
               "contact-sheet-popup pointer-events-auto fixed inset-0 z-[91] flex flex-col outline-none",
               "bg-surface-sunk text-text-primary",
             )}
+            data-harness="contact-sheet"
             style={{
               // Opacity transition required so Base UI getAnimations() waits on exit
               transition: dragging
