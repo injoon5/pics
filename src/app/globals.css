@@ -154,17 +154,17 @@ body {
 
 .type-sleeve-label {
   font-variation-settings: "opsz" 14, "wght" 500, "wdth" 92;
-  color: var(--color-text-primary);
+  color: var(--color-accent);
 }
 
 .type-lab-stamp {
   font-variation-settings: "opsz" 14, "wght" 450, "wdth" 84;
   font-variant-numeric: tabular-nums;
-  color: var(--color-text-tertiary);
+  color: color-mix(in oklch, var(--color-china-700) 70%, transparent);
 }
 
 [data-appearance="dark"] .type-lab-stamp {
-  color: var(--color-text-tertiary);
+  color: color-mix(in oklch, var(--color-china-300) 70%, transparent);
 }
 
 /* Stage / card geometry */

@@ -101,9 +101,12 @@ export function Card({
     const c = contactAlpha(uv);
     const k = castAlpha(uv);
     const contact = `0 1px 0 0 ${shadowTint(hue, c)}`;
-    const castY = 8 + uv * 28;
     const castBlur = 12 + uv * 36;
-    const cast = `0 ${castY}px ${castBlur}px -4px ${shadowTint(hue, k)}`;
+    // Cast falls opposite the flip direction (§5.4)
+    const cast =
+      axis === "y"
+        ? `${8 + uv * 28}px 0 ${castBlur}px -4px ${shadowTint(hue, k)}`
+        : `0 ${8 + uv * 28}px ${castBlur}px -4px ${shadowTint(hue, k)}`;
     return `${contact}, ${cast}`;
   });
 
@@ -159,8 +162,7 @@ export function Card({
       <motion.div className="face face--front" style={faceOpacityStyle}>
         {photo ? (
           <div className="relative flex h-full flex-col bg-surface-recto" style={matPad}>
-            <motion.div
-              layoutId={`print-${photo.id}`}
+            <div
               className="relative min-h-0 flex-1 overflow-hidden"
               style={{ borderRadius: cardTokens.imageRadius }}
             >
@@ -173,7 +175,7 @@ export function Card({
                 className="mat-image"
                 draggable={false}
               />
-            </motion.div>
+            </div>
             <div className="mt-2 flex justify-end">
               <span className="type-frame text-text-tertiary">
                 {frameLabel(index)}
@@ -225,7 +227,8 @@ export function TopPrint({ photo, visible }: TopPrintProps) {
         className="absolute inset-x-0 bottom-0 flex h-full flex-col bg-surface-recto"
         style={matPad}
       >
-        <div
+        <motion.div
+          layoutId={`print-${photo.id}`}
           className="relative min-h-0 flex-1 overflow-hidden"
           style={{ borderRadius: cardTokens.imageRadius }}
         >
@@ -238,7 +241,7 @@ export function TopPrint({ photo, visible }: TopPrintProps) {
             className="mat-image"
             draggable={false}
           />
-        </div>
+        </motion.div>
         <div className="paper-grain" aria-hidden />
       </div>
     </div>
