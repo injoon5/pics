@@ -280,7 +280,7 @@ export const albums: Album[] = [
     title: "East coast roll",
     subtitle: "New York · Sokcho · Seoul",
     intro:
-      "Twelve frames from a short trip. Flip from the hinge. The story sits on the back of the next print.",
+      "Twelve frames from a short trip. Flip from the hinge. Captions live on the verso of each print.",
     colophon: "36 exp · mixed bodies · 2025–2026",
     lang: "ko",
     coverPhotoId: rollPhotos[0]!.id,
