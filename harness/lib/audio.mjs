@@ -19,11 +19,9 @@ export async function installAudioTap(page) {
     const chunks = [];
     let recorder = null;
     let dest = null;
-    let ctxRef = null;
 
     function ensureRecorder(ctx) {
       if (recorder) return;
-      ctxRef = ctx;
       dest = ctx.createMediaStreamDestination();
       // Tee master output: wrap destination.connect if needed by also connecting
       // every node that connects to ctx.destination → also to dest.

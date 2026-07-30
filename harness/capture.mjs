@@ -11,8 +11,7 @@
  * Artifacts land in artifacts/harness/ and /opt/cursor/artifacts/harness/ when present.
  */
 
-import { mkdir, writeFile, copyFile, access } from "node:fs/promises";
-import { existsSync } from "node:fs";
+import { mkdir, writeFile, copyFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
@@ -51,14 +50,17 @@ function flagValue(args, name) {
 async function mirrorToCursorArtifacts(filePath) {
   const destRoot = "/opt/cursor/artifacts/harness";
   try {
-    await access("/opt/cursor/artifacts");
+    await mkdir(destRoot, { recursive: true });
   } catch {
     return;
   }
-  await mkdir(destRoot, { recursive: true });
-  const dest = path.join(destRoot, path.basename(filePath));
-  await copyFile(filePath, dest);
-  return dest;
+  try {
+    const dest = path.join(destRoot, path.basename(filePath));
+    await copyFile(filePath, dest);
+    return dest;
+  } catch {
+    return;
+  }
 }
 
 async function main() {
