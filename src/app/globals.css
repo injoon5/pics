@@ -1,0 +1,572 @@
+@import "tailwindcss";
+@import "./interlude.css";
+
+/* ───────────────────────────────────────────────────────────────────────────
+   §3.1 Colour — neutral paper, one blue.
+
+   The photographs are the only source of colour in this product. Scales are
+   generated in OKLCH: constant hue, evenly distributed lightness, chroma
+   clamped to a percentage of the in-gamut maximum per step, with a mild taper
+   at the extremes. All values verified in sRGB gamut.
+
+   `@theme static` rather than `@theme`: the semantic roles below reference the
+   scale tokens through var(), which Tailwind's usage detection cannot see, so
+   the scale would otherwise be tree-shaken out from under them.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+@theme static {
+  /* paper — warm neutral, H=86, near-zero chroma */
+  --color-paper-50: oklch(0.972 0.004 86);
+  --color-paper-100: oklch(0.938 0.005 86);
+  --color-paper-200: oklch(0.888 0.006 86);
+  --color-paper-300: oklch(0.822 0.007 86);
+  --color-paper-400: oklch(0.73 0.008 86);
+  --color-paper-500: oklch(0.625 0.009 86);
+  --color-paper-600: oklch(0.535 0.009 86);
+  --color-paper-700: oklch(0.452 0.01 86);
+  --color-paper-800: oklch(0.378 0.01 86);
+  --color-paper-900: oklch(0.302 0.011 86);
+  --color-paper-950: oklch(0.228 0.011 86);
+
+  /* chinagraph — H=252, 82% of max chroma per step. A wax pencil, not UI blue. */
+  --color-china-50: oklch(0.972 0.008 252);
+  --color-china-100: oklch(0.938 0.019 252);
+  --color-china-200: oklch(0.888 0.039 252);
+  --color-china-300: oklch(0.822 0.068 252);
+  --color-china-400: oklch(0.73 0.114 252);
+  --color-china-500: oklch(0.625 0.153 252);
+  --color-china-600: oklch(0.535 0.13 252);
+  --color-china-700: oklch(0.452 0.106 252);
+  --color-china-800: oklch(0.378 0.084 252);
+  --color-china-900: oklch(0.302 0.061 252);
+  --color-china-950: oklch(0.228 0.041 252);
+
+  /* Semantic roles. Components use these and nothing else — if a role doesn't
+     exist, add one rather than borrowing a token with the right value today. */
+  --color-surface: var(--color-paper-50); /* the mat, the page */
+  --color-surface-recto: var(--color-paper-100); /* card back, one step darker */
+  --color-surface-sunk: var(--color-paper-200); /* sleeve interior, sheet ground */
+  --color-separator: var(--color-paper-300); /* stack hairlines, rules */
+  --color-text-primary: var(--color-paper-900);
+  --color-text-secondary: var(--color-paper-700);
+  --color-text-tertiary: var(--color-paper-600); /* EXIF row only */
+  --color-accent: var(--color-china-700); /* small text + strokes on paper */
+  --color-accent-fill: var(--color-china-600); /* filled controls */
+  --color-accent-on-fill: var(--color-paper-50);
+
+  /* §3.3 Motion. A: scrubbed — the user is the clock, so the slow start is
+     the paper's weight, not a delay. B: timed — never ease-in, never a
+     browser built-in. */
+  --ease-flip: cubic-bezier(0.34, 0.02, 0.18, 1);
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* §3.2 Type. Interlude: opsz 14–32, wght 100–900, wdth 75–125.
+     Inter latin, Pretendard CJK — Korean notes are native. */
+  --font-sans:
+    "Interlude Variable", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+    "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", sans-serif;
+
+  /* §3.5 Radii — concentric. card → mat → image. */
+  --radius-card: 4px;
+  --radius-image: 2px;
+}
+
+/* Dark is tuned, not mirrored: `surface-sunk` is hand-set rather than taken
+   from the scale, and the accent moves up four steps rather than reflecting. */
+[data-appearance="dark"] {
+  --color-surface: var(--color-paper-950);
+  --color-surface-recto: var(--color-paper-900);
+  --color-surface-sunk: oklch(0.18 0.01 86);
+  --color-separator: var(--color-paper-800);
+  --color-text-primary: var(--color-paper-50);
+  --color-text-secondary: var(--color-paper-300);
+  --color-text-tertiary: var(--color-paper-400);
+  --color-accent: var(--color-china-300);
+  --color-accent-fill: var(--color-china-500);
+  --color-accent-on-fill: var(--color-paper-950);
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --color-accent: var(--color-china-800);
+    --color-text-secondary: var(--color-paper-800);
+  }
+  [data-appearance="dark"] {
+    --color-accent: var(--color-china-200);
+    --color-text-secondary: var(--color-paper-200);
+  }
+}
+
+@layer base {
+  :root {
+    /* Frozen at first paint by useStableViewport() — 100dvh moves as Safari's
+       URL bar collapses, and a hinge that moves is the whole thing falling
+       apart (§7.1). */
+    --hinge-y: 50vh;
+    --pane-h: 50vh;
+    --hinge-x: 50vw;
+    --pane-w: 50vw;
+    /* Safari's floating bottom bar, measured from visualViewport (§7.2). */
+    --chrome-inset: 0px;
+    --thickness: 1.6px;
+
+    color-scheme: light;
+    /* §3.2 — smoothing follows the appearance, not the platform. Subpixel
+       light-on-dark looks bloated on macOS; antialiased dark-on-paper looks
+       anaemic. */
+    -webkit-font-smoothing: auto;
+    font-family: var(--font-sans);
+  }
+
+  [data-appearance="dark"] {
+    color-scheme: dark;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* §7.3 — scroll and touch hygiene. Note we do NOT position:fixed the body to
+     stop rubber-banding: it works, and it also freezes Safari's URL bar
+     expanded, costing 56pt on every screen. */
+  /* §4.2 — the document *is* the scroll container. A nested `overflow-y:
+     scroll` div would give the same flip and would then never collapse
+     Safari's URL bar, which §7.2 depends on entirely; it would also put
+     `animation-timeline: scroll()` out of reach of the fixed card layer,
+     since `scroll()` resolves against ancestor scrollers and the cards are
+     `position: fixed`. */
+  html {
+    overscroll-behavior-y: none;
+    background: var(--color-surface);
+    scroll-snap-type: y mandatory;
+  }
+
+  body {
+    background: var(--color-surface);
+    color: var(--color-text-primary);
+    font-variation-settings: "opsz" 14, "wght" 400, "wdth" 100;
+    margin: 0;
+    /* iOS Safari only honours this on a scrollable ancestor chain. */
+    -webkit-text-size-adjust: 100%;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--color-accent) 22%, transparent);
+  }
+
+  /* §7.5 — 2px ring at 2px offset, in the accent, on paper. */
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  /* The photographs are the product; nothing else should be selectable or
+     invoke iOS's callout menu. Captions and EXIF opt back in below (§7.3). */
+  .card,
+  .hinge,
+  .stack,
+  .sleeve,
+  .sheet-frame {
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+
+  .caption,
+  .exif {
+    user-select: text;
+    -webkit-user-select: text;
+  }
+}
+
+@layer components {
+  /* ── §4.3 Geometry ──────────────────────────────────────────────────────
+     The stage owns the perspective; the card is hinged at its top edge; the
+     faces are hinged at their own centres. Those two origins must differ, or
+     the photo lands the wrong way up.
+
+     §5.6: nothing on an ancestor of .stage may set opacity < 1, filter,
+     backdrop-filter, mask, overflow:hidden + border-radius, or will-change on
+     anything but transform — every one of those flattens the 3D context on
+     iOS and the pad collapses to a 2D scale. There is a dev assertion for
+     this in components/dev/StageAssert.tsx. */
+  /* Empty spacers. The cards never scroll — they only rotate — so all the
+     scroll container holds is one screen of nothing per card. */
+  .pad-section {
+    height: 100dvh;
+    scroll-snap-align: start;
+    /* Without this a hard flick skips three photos and the pile appears to
+       teleport (§4.2). */
+    scroll-snap-stop: always;
+  }
+
+  .stage {
+    position: fixed;
+    inset: 0;
+    perspective: 1400px;
+    perspective-origin: 50% var(--hinge-y);
+    transform-style: preserve-3d;
+    pointer-events: none;
+  }
+
+  .card {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: var(--hinge-y);
+    height: var(--pane-h);
+    transform-origin: 50% 0%; /* the hinge */
+    transform-style: preserve-3d;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+  }
+
+  /* §4.5 — desktop book mode. Same component, hinge rotated a quarter turn. */
+  .stage[data-axis="x"] {
+    perspective-origin: var(--hinge-x) 50%;
+  }
+
+  .stage[data-axis="x"] .card {
+    top: 0;
+    bottom: 0;
+    left: var(--hinge-x);
+    right: auto;
+    width: var(--pane-w);
+    height: 100%;
+    transform-origin: 0% 50%;
+  }
+
+  .face {
+    position: absolute;
+    inset: 0;
+    transform-origin: 50% 50%;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+    /* §5.2 — the inner cut line, and the half-pixel outer specular that reads
+       as the cut edge of the paper catching light. */
+    box-shadow:
+      inset 0 0 0 1px oklch(0 0 0 / 0.055),
+      0 0 0 0.5px oklch(1 0 0 / 0.6);
+    /* Deliberately no `overflow: hidden` here. A clip with a radius inside a
+       `preserve-3d` parent forces the face into an intermediate surface on
+       iOS, which breaks `backface-visibility` and shows the print through the
+       back of the card. Children that need clipping carry their own radius. */
+  }
+
+  .face--back {
+    transform: translateZ(calc(var(--thickness) / 2));
+    background: var(--color-surface-recto);
+  }
+
+  /* Pre-rotated about its own centre, so the print is the right way up once
+     the card has swung over the hinge — exactly as a real flip-pad page is. */
+  .face--front {
+    transform: rotateX(180deg) translateZ(calc(var(--thickness) / 2));
+  }
+
+  .stage[data-axis="x"] .face--front {
+    transform: rotateY(180deg) translateZ(calc(var(--thickness) / 2));
+  }
+
+  /* §5.1 — three planes, not six. Left/right rims are invisible at this
+     viewing angle, so the bottom edge is the only quad worth drawing. */
+  .rim {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: var(--thickness);
+    transform-origin: 50% 100%;
+    transform: rotateX(-90deg);
+    background: linear-gradient(
+      to bottom,
+      oklch(0.99 0.003 86),
+      oklch(0.88 0.006 86) 55%,
+      oklch(0.8 0.008 86)
+    );
+  }
+
+  .stage[data-axis="x"] .rim {
+    left: auto;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    width: var(--thickness);
+    height: auto;
+    transform-origin: 100% 50%;
+    transform: rotateY(90deg);
+  }
+
+  /* §5.2 — one 512×512 tile of paper fibre at ~3.5%, multiplied. The same file
+     everywhere, and the highest-leverage detail in the build. */
+  .grain {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: url("/grain.webp");
+    background-size: 256px 256px;
+    background-repeat: repeat;
+    mix-blend-mode: multiply;
+    opacity: var(--grain-opacity, 0.035);
+    border-radius: inherit;
+  }
+
+  [data-appearance="dark"] .grain {
+    mix-blend-mode: screen;
+    opacity: calc(var(--grain-opacity, 0.035) * 0.7);
+  }
+
+  /* §5.2 — the mat. A print's border is wider at the bottom; this single
+     decision says "print" louder than any texture. */
+  .mat {
+    position: absolute;
+    inset: 0;
+    padding: var(--mat-top) var(--mat-side) var(--mat-bottom);
+    display: flex;
+  }
+
+  .mat img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: var(--radius-image);
+    /* Pure black / pure white only. A tinted neutral picks up the mat colour
+       and reads as grime along the image edge. */
+    outline: 1px solid rgb(0 0 0 / 0.1);
+    outline-offset: -1px;
+  }
+
+  [data-appearance="dark"] .mat img {
+    outline-color: rgb(255 255 255 / 0.1);
+  }
+
+  /* §6.3 — progressive blur. Not one blur: a stack of layers, each with a
+     larger radius and a mask that fades it in. That gradient is what makes it
+     read as depth rather than a smeared band. Four layers on iOS, not six —
+     each is a full-width backdrop sample per frame.
+
+     Lives in a sibling stacking context to .stage, never inside it (§5.6). */
+  /* Fixed, not absolute. The document is N viewports tall, so `bottom: 0` on
+     an absolutely positioned element lands at the bottom of the *album*, not
+     the bottom of the screen — the blur would sit somewhere off-screen for
+     every card but the last. */
+  .progressive-blur {
+    position: fixed;
+    left: 0;
+    right: 0;
+    pointer-events: none;
+    isolation: isolate;
+  }
+
+  .progressive-blur > div {
+    position: absolute;
+    inset: 0;
+    -webkit-backdrop-filter: blur(var(--r));
+    backdrop-filter: blur(var(--r));
+    -webkit-mask-image: linear-gradient(
+      var(--dir, to bottom),
+      black var(--a),
+      transparent var(--b)
+    );
+    mask-image: linear-gradient(
+      var(--dir, to bottom),
+      black var(--a),
+      transparent var(--b)
+    );
+  }
+
+  /* §8 — the contact sheet's enter and exit. Base UI owns the mounting and
+     hangs `data-starting-style` / `data-ending-style` on the popup; we own
+     everything visual. Both states touch opacity, which is what makes Base
+     UI's `getAnimations()` unmount detection fire (§2.5, gotcha 1). */
+  .sheet-popup {
+    transition-property: opacity, transform;
+    opacity: 1;
+    transform: scaleY(1);
+  }
+
+  .sheet-popup[data-starting-style],
+  .sheet-popup[data-ending-style] {
+    opacity: 0;
+    /* Grows from the hinge and collapses back into it — the transform-origin
+       is set inline to the hinge line. */
+    transform: scaleY(0.86);
+  }
+
+  .sheet-thumb {
+    transition-property: opacity, transform;
+    opacity: 1;
+    transform: rotate(var(--angle)) scale(1);
+  }
+
+  [data-starting-style] .sheet-thumb,
+  [data-ending-style] .sheet-thumb {
+    opacity: 0;
+    /* Never scale(0): nothing in the real world appears from nothing (§3.3). */
+    transform: rotate(var(--angle)) scale(var(--enter-scale));
+  }
+
+  /* §7.2 — the rail glides above Safari's floating bottom bar. 240ms,
+     --ease-out, no spring, no bounce: anything tracking system chrome that
+     overshoots reads as a bug. */
+  /* Do not put a `pb-*` utility on an element carrying this class. Tailwind's
+     utilities layer wins over components, so the utility silently replaces
+     this whole calc — and with it the §7.2 chrome tracking, which then looks
+     like it works because nothing visibly breaks until you scroll on a phone.
+     Use `--rail-pad` for the base inset instead. */
+  .bottom-rail {
+    /* The bottom blur field is an edge dissolve for the *paper* — the card's
+       bottom edge and its grain going soft against the screen edge. It must
+       never sit over the caption: blurring your own text is not depth, it is
+       a bug that looks like a design. So the rail keeps its last line clear of
+       the band as well as of Safari's chrome. */
+    padding-bottom: calc(
+      var(--rail-pad, 20px) + env(safe-area-inset-bottom) + var(--chrome-inset) +
+        var(--blur-bottom, 0px)
+    );
+    transition:
+      padding-bottom 240ms var(--ease-out),
+      transform 240ms var(--ease-out);
+  }
+
+  /* §3.2 — tabular numerals are mandatory here. Without them the EXIF row
+     jitters horizontally on every flip and it looks broken without anyone
+     being able to name why. */
+  .exif,
+  .frame-number,
+  .film-counter {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+  }
+
+  /* §3.1 gives `text-tertiary` as "EXIF row only" and measures it at 4.77:1
+     against `surface`. But in this build every EXIF row is printed on the back
+     of a card, which is `surface-recto` — one step darker — where the same
+     token measures 4.31:1 and fails. §3.1's own escape hatch applies: promote
+     it to `text-secondary`. `text-tertiary` stays for type set on `surface`
+     itself, which is the mat, and therefore the frame number.
+     Verify with `node scripts/contrast.mjs` after any token change. */
+  .exif {
+    font-variation-settings: "opsz" 14, "wght" 450, "wdth" 88;
+    letter-spacing: 0.02em;
+    color: var(--color-text-secondary);
+  }
+
+  .frame-number,
+  .film-counter {
+    font-variation-settings: "opsz" 14, "wght" 600, "wdth" 82;
+  }
+
+  .caption {
+    font-variation-settings: "opsz" 14, "wght" 400, "wdth" 100;
+    line-height: 1.55;
+    text-wrap: pretty;
+    color: var(--color-text-secondary);
+  }
+
+  .album-title {
+    font-variation-settings: "opsz" 32, "wght" 500, "wdth" 100;
+    text-wrap: balance;
+  }
+
+  /* §5.5 — pressed into the paper, not printed on it. */
+  .letterpress {
+    font-variation-settings: "opsz" 32, "wght" 380, "wdth" 96;
+    color: color-mix(in oklab, var(--color-text-primary) 88%, transparent);
+    text-shadow:
+      0 1px 0 rgb(255 255 255 / 0.7),
+      0 -0.5px 0 rgb(0 0 0 / 0.1);
+    text-wrap: pretty;
+  }
+
+  [data-appearance="dark"] .letterpress {
+    text-shadow:
+      0 1px 0 rgb(0 0 0 / 0.5),
+      0 -0.5px 0 rgb(255 255 255 / 0.08);
+  }
+}
+
+@layer utilities {
+  /* §7.5 — press feedback. The same absolute displacement reads as
+     exaggerated on a big element, so large surfaces get less. Transitions,
+     not keyframes, so a retrigger retargets from the current value (§3.3). */
+  .press {
+    transition: transform 140ms var(--ease-out);
+  }
+  .press:active {
+    transform: scale(0.96);
+  }
+  .press-lg {
+    transition: transform 140ms var(--ease-out);
+  }
+  .press-lg:active {
+    transform: scale(0.98);
+  }
+
+  /* §7.5 — touch devices fire false hovers on tap. */
+  @media (hover: hover) and (pointer: fine) {
+    .hover-lift {
+      transition:
+        transform 140ms var(--ease-out),
+        box-shadow 140ms var(--ease-out);
+    }
+    .hover-lift:hover {
+      transform: translateY(-2px);
+    }
+  }
+
+  /* §7.5 — the hinge grabber, browse toggle and film counter all need 40×40
+     without their visual size growing. */
+  .hit-40 {
+    position: relative;
+  }
+  .hit-40::after {
+    content: "";
+    position: absolute;
+    inset: 50% 50%;
+    width: 40px;
+    height: 40px;
+    translate: -50% -50%;
+  }
+}
+
+/* §4.1 — the primary flip is a native CSS scroll-driven animation.
+   Safari 26 supports `animation-timeline: scroll()` and it runs on the
+   compositor, which means it stays in perfect sync during a fast fling —
+   exactly the case where a `useScroll` + rAF implementation visibly desyncs.
+   The Motion path stays as the fallback and as the path for everything
+   interruptible.
+
+   `animation-fill-mode: both` is not optional: without it the card snaps back
+   to its start state the moment you scroll back up.
+
+   No `will-change` here. The browser promotes these layers itself, and a
+   manual hint allocates a texture for every card (§7.4). */
+@supports (animation-timeline: scroll()) {
+  .stage[data-path="css"] .card[data-flips="true"] {
+    animation: flip linear both;
+    animation-timeline: scroll(root block);
+    animation-range: calc(var(--i) * 100dvh) calc((var(--i) + 1) * 100dvh);
+  }
+
+  .stage[data-path="css"][data-axis="x"] .card[data-flips="true"] {
+    animation-name: flip-x;
+  }
+}
+
+/* §13 — reduced motion means fewer and gentler animations, not zero. The pad
+   cross-fades instead of flipping (see components/stage/FlatPad.tsx); the
+   sheen, the shadow lag, the ambient drift and the chinagraph draw-on go; the
+   transitions that explain what happened stay. */
+@media (prefers-reduced-motion: reduce) {
+  .sheen {
+    display: none !important;
+  }
+
+  .ambient {
+    transition: none !important;
+    filter: none !important;
+  }
+}
