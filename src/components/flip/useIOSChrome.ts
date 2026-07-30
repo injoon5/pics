@@ -50,7 +50,7 @@ export function useIOSChrome(hingeRatio: number = hinge.ratio): IOSChromeState {
           ? Math.max(0, window.innerHeight - vv.height - vv.offsetTop)
           : 0;
 
-        // Direct style write — no React during URL-bar motion
+        // Direct style write — no React during URL-bar / floating tab motion
         if (inset !== lastInset) {
           lastInset = inset;
           root.style.setProperty("--chrome-inset", `${inset}px`);
@@ -59,6 +59,7 @@ export function useIOSChrome(hingeRatio: number = hinge.ratio): IOSChromeState {
         const nextCollapsed = inset < COLLAPSED_INSET_PX;
         if (lastCollapsed === null || nextCollapsed !== lastCollapsed) {
           lastCollapsed = nextCollapsed;
+          root.dataset.chrome = nextCollapsed ? "collapsed" : "expanded";
           setCollapsed(nextCollapsed);
           setChromeInset(inset);
         }

@@ -10,10 +10,11 @@ export const hinge = {
 export const card = {
   thickness: 1.6,
   radius: 4,
-  matTop: 10,
-  matSides: 10,
-  matBottom: 22,
-  imageRadius: 2,
+  /** Full-bleed print — no polaroid mat */
+  matTop: 0,
+  matSides: 0,
+  matBottom: 0,
+  imageRadius: 0,
   grainOpacity: 0.035,
 } as const;
 
@@ -60,6 +61,11 @@ export const blur = {
   ] as const,
   tintOpacity: 0.4,
   crossfadeBlurPx: 2,
+  /** Progressive blur height range as % of stage (scaled by palette strength) */
+  minHeightPct: 10,
+  maxHeightPct: 22,
+  /** Match Safari floating tab bar motion */
+  chromeFollowMs: 240,
 } as const;
 
 export const appearance = {

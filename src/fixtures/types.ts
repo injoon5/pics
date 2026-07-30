@@ -3,6 +3,12 @@ export interface PhotoPalette {
   bottomBand: string;
   shadowHue: number;
   meanL: number;
+  /** Safari / PWA theme-color — pre-baked from analysis */
+  themeColor: string;
+  /** 0–1 progressive blur strength at the top edge */
+  blurTop: number;
+  /** 0–1 progressive blur strength at the bottom edge */
+  blurBottom: number;
 }
 
 export interface PhotoExif {

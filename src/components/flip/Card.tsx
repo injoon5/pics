@@ -17,7 +17,6 @@ import {
   shadow,
   sheen,
 } from "@/design/tokens";
-import { frameLabel } from "@/lib/format";
 import { shadowTint } from "@/lib/appearance";
 import type { Photo } from "@/fixtures/types";
 import type { MediaAxis } from "./useMediaAxis";
@@ -102,7 +101,6 @@ export function Card({
     const k = castAlpha(uv);
     const contact = `0 1px 0 0 ${shadowTint(hue, c)}`;
     const castBlur = 12 + uv * 36;
-    // Cast falls opposite the flip direction (§5.4)
     const cast =
       axis === "y"
         ? `${8 + uv * 28}px 0 ${castBlur}px -4px ${shadowTint(hue, k)}`
@@ -116,7 +114,6 @@ export function Card({
   const transformY = useMotionTemplate`rotateY(${rot}deg)`;
   const transform = axis === "y" ? transformY : transformX;
 
-  // §4.4 — step at u=0.5; below hinge: 50−i (current on top), above: 50+i
   useMotionValueEvent(u, "change", (uv) => {
     zMv.set(uv < 0.5 ? 50 - index : 50 + index);
   });
@@ -131,14 +128,6 @@ export function Card({
     [index],
   );
 
-  const matPad: CSSProperties = {
-    paddingTop: cardTokens.matTop,
-    paddingLeft: cardTokens.matSides,
-    paddingRight: cardTokens.matSides,
-    paddingBottom: cardTokens.matBottom,
-  };
-
-  // §5.6 — never put opacity on .card; animate face children only
   const faceOpacityStyle = reducedMotion ? { opacity: opacityMv } : undefined;
 
   return (
@@ -150,7 +139,6 @@ export function Card({
           : { ...cssVars, transform, zIndex: zMv, boxShadow }
       }
     >
-      {/* Back face — caption / intro / colophon */}
       <motion.div className="face face--back" style={faceOpacityStyle}>
         <div className="relative flex h-full flex-col justify-end p-5 pb-8">
           {backContent}
@@ -158,29 +146,18 @@ export function Card({
         <div className="paper-grain" aria-hidden />
       </motion.div>
 
-      {/* Front face — print (or empty sleeve) */}
       <motion.div className="face face--front" style={faceOpacityStyle}>
         {photo ? (
-          <div className="relative flex h-full flex-col bg-surface-recto" style={matPad}>
-            <div
-              className="relative min-h-0 flex-1 overflow-hidden"
-              style={{
-                borderRadius: cardTokens.imageRadius,
-                boxShadow:
-                  "inset 0 0 0 1px oklch(0 0 0 / 0.06), 0 0 0 0.5px oklch(1 0 0 / 0.55)",
-              }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={photo.src}
-                alt={photo.alt}
-                width={photo.width}
-                height={photo.height}
-                className="mat-image"
-                draggable={false}
-              />
-            </div>
-            {/* Frame # lives on TopPrint (settled) — avoid ghost 03/04 desync near hinge */}
+          <div className="relative h-full w-full overflow-hidden bg-surface-recto">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={photo.src}
+              alt={photo.alt}
+              width={photo.width}
+              height={photo.height}
+              className="print-image"
+              draggable={false}
+            />
           </div>
         ) : (
           <div className="relative flex h-full flex-col justify-end bg-surface p-6 pb-8">
@@ -198,28 +175,15 @@ export function Card({
   );
 }
 
-/** Static settled print — top half (stack) or left half (book). */
+/** Static settled print — top half (stack) or left half (book). Full-bleed, no mat. */
 export interface TopPrintProps {
   photo: Photo;
   visible: boolean;
   axis?: MediaAxis;
-  frameIndex?: number;
 }
 
-export function TopPrint({
-  photo,
-  visible,
-  axis = "x",
-  frameIndex = 0,
-}: TopPrintProps) {
+export function TopPrint({ photo, visible, axis = "x" }: TopPrintProps) {
   if (!visible) return null;
-
-  const matPad: CSSProperties = {
-    paddingTop: cardTokens.matTop,
-    paddingLeft: cardTokens.matSides,
-    paddingRight: cardTokens.matSides,
-    paddingBottom: cardTokens.matBottom,
-  };
 
   const isBook = axis === "y";
 
@@ -244,37 +208,20 @@ export function TopPrint({
       aria-hidden
       data-harness="top-print"
     >
-      <div
-        className="absolute inset-0 flex flex-col bg-surface"
-        style={matPad}
+      <motion.div
+        layoutId={`print-${photo.id}`}
+        className="absolute inset-0 overflow-hidden bg-surface-recto"
       >
-        <motion.div
-          layoutId={`print-${photo.id}`}
-          className="relative min-h-0 flex-1 overflow-hidden"
-          style={{
-            borderRadius: cardTokens.imageRadius,
-            // Keep dark prints reading as objects — half-pixel cut edge
-            boxShadow:
-              "inset 0 0 0 1px oklch(0 0 0 / 0.06), 0 0 0 0.5px oklch(1 0 0 / 0.55)",
-          }}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={photo.src}
-            alt=""
-            width={photo.width}
-            height={photo.height}
-            className="mat-image"
-            draggable={false}
-          />
-        </motion.div>
-        <div className="mt-2 flex justify-end">
-          <span className="type-frame text-text-tertiary">
-            {frameLabel(frameIndex)}
-          </span>
-        </div>
-        <div className="paper-grain" aria-hidden />
-      </div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={photo.src}
+          alt=""
+          width={photo.width}
+          height={photo.height}
+          className="print-image"
+          draggable={false}
+        />
+      </motion.div>
     </div>
   );
 }

@@ -16,8 +16,9 @@ export function FilmCounter({ current, total }: FilmCounterProps) {
 
   return (
     <div
-      className="type-frame pointer-events-none fixed right-4 top-4 z-50 flex items-baseline gap-0.5 tabular-nums"
+      className="type-frame pointer-events-none fixed right-4 z-50 flex items-baseline gap-0.5 tabular-nums"
       style={{
+        top: "calc(1rem + env(safe-area-inset-top, 0px))",
         fontVariationSettings: `"opsz" ${typeTokens.frame.opsz}, "wght" ${typeTokens.frame.wght}, "wdth" ${typeTokens.frame.wdth}`,
       }}
       aria-live="polite"

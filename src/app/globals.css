@@ -89,6 +89,7 @@ html {
   overscroll-behavior-y: none;
   background: var(--color-surface);
   color: var(--color-text-primary);
+  transition: background-color 240ms var(--ease-out);
 }
 
 body {
@@ -302,6 +303,15 @@ body {
   outline-color: rgb(255 255 255 / 0.1);
 }
 
+/* Full-bleed print — no polaroid mat / frame number */
+.print-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 0;
+}
+
 .sheen {
   position: absolute;
   inset: 0;
@@ -426,7 +436,8 @@ body {
   right: 0;
   bottom: 0;
   z-index: 80;
-  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--chrome-inset));
+  /* Ride the floating Safari tab bar — inset updates every frame via useIOSChrome */
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--chrome-inset, 0px));
   transition: padding-bottom 240ms var(--ease-out);
   pointer-events: none;
 }
@@ -463,8 +474,6 @@ body {
 
 /* Progressive blur sibling layer */
 .progressive-blur {
-  position: absolute;
-  inset: 0;
   pointer-events: none;
 }
 

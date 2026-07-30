@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "analyze:palettes": "node scripts/analyze-palettes.mjs",
     "harness": "node harness/capture.mjs",
     "harness:screenshots": "node harness/capture.mjs screenshots",
     "harness:video": "node harness/capture.mjs video",

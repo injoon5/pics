@@ -116,7 +116,7 @@ export function Flipbook({ album }: FlipbookProps) {
       : cardTokens.grainOpacity;
 
   const axis = useMediaAxis();
-  const { chromeInset, stableHeight, collapsed } = useIOSChrome(hingeRatio);
+  const { stableHeight, collapsed } = useIOSChrome(hingeRatio);
 
   const scrollerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -278,7 +278,7 @@ export function Flipbook({ album }: FlipbookProps) {
     settledIndex >= 1 ? photos[Math.min(settledIndex, photos.length) - 1]! : photos[0]!;
   const meanL = settledPhoto?.palette.meanL ?? 0.97;
   const shadowHue = settledPhoto?.palette.shadowHue ?? 86;
-  useAppearance(meanL, shadowHue);
+  useAppearance(meanL, shadowHue, settledPhoto?.palette.themeColor);
 
   const railPhoto =
     settledIndex >= 1 ? photos[Math.min(settledIndex, photos.length) - 1]! : null;
@@ -287,11 +287,15 @@ export function Flipbook({ album }: FlipbookProps) {
     settledIndex >= 1 ? photos[Math.min(settledIndex, photos.length) - 1]! : null;
 
   const remaining = Math.max(0, photos.length - settledIndex);
-  const bandTop = topPhoto?.palette.topBand ?? "var(--color-surface)";
-  const bandBottom =
-    (settledIndex < photos.length
-      ? photos[Math.min(settledIndex, photos.length - 1)]?.palette.bottomBand
-      : photos[photos.length - 1]?.palette.bottomBand) ?? "var(--color-surface)";
+  // Always tint from a real photo palette — intro uses frame 0 so blur isn't paper-void
+  const palettePhoto =
+    settledIndex >= 1
+      ? photos[Math.min(settledIndex, photos.length) - 1]!
+      : photos[0]!;
+  const bandTop = palettePhoto?.palette.topBand ?? "var(--color-surface)";
+  const bandBottom = palettePhoto?.palette.bottomBand ?? "var(--color-surface)";
+  const blurTop = palettePhoto?.palette.blurTop ?? 0.55;
+  const blurBottom = palettePhoto?.palette.blurBottom ?? 0.55;
 
   const filmCurrent = Math.min(settledIndex, photos.length);
 
@@ -324,16 +328,10 @@ export function Flipbook({ album }: FlipbookProps) {
           perspective: `${perspective}px`,
           // Keep mounted during sheet so layoutId flight has a source
           visibility: sheetOpen ? "hidden" : "visible",
-          ["--chrome-inset-js" as string]: `${chromeInset}px`,
         }}
       >
         {topPhoto ? (
-          <TopPrint
-            photo={topPhoto}
-            visible
-            axis={axis}
-            frameIndex={Math.min(settledIndex, photos.length) - 1}
-          />
+          <TopPrint photo={topPhoto} visible axis={axis} />
         ) : null}
 
         <StackHairlines
@@ -359,8 +357,12 @@ export function Flipbook({ album }: FlipbookProps) {
         })}
       </div>
 
-      <ProgressiveBlur bandColor={bandTop} edge="top" />
-      <ProgressiveBlur bandColor={bandBottom} edge="bottom" />
+      <ProgressiveBlur bandColor={bandTop} edge="top" strength={blurTop} />
+      <ProgressiveBlur
+        bandColor={bandBottom}
+        edge="bottom"
+        strength={blurBottom}
+      />
 
       <BottomRail photo={railPhoto} collapsed={collapsed} />
       <FilmCounter current={filmCurrent} total={photos.length} />

@@ -1,7 +1,16 @@
 import { appearance } from "@/design/tokens";
 
-/** Clamp photo mean colour into a near-surface theme-color. */
-export function themeColorFromPalette(meanL: number, shadowHue: number, isDark: boolean): string {
+/**
+ * Prefer the pre-analyzed themeColor when present; otherwise derive a
+ * near-surface tint from meanL + shadowHue.
+ */
+export function themeColorFromPalette(
+  meanL: number,
+  shadowHue: number,
+  isDark: boolean,
+  precomputed?: string,
+): string {
+  if (precomputed) return precomputed;
   const surfaceL = isDark ? 0.228 : 0.972;
   const L = clamp(
     meanL,

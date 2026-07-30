@@ -10,21 +10,30 @@ export type Appearance = "light" | "dark";
 
 /**
  * Syncs document appearance + theme-color from the settled photo palette.
- * theme-color updates once per settled index (throttled by index change).
+ * theme-color updates once per settled photo (keyed by palette identity).
  */
-export function useAppearance(meanL: number, shadowHue: number): Appearance {
+export function useAppearance(
+  meanL: number,
+  shadowHue: number,
+  themeColor?: string,
+): Appearance {
   const appearance = appearanceFromMeanL(meanL);
-  const lastIndexKey = useRef<string | null>(null);
+  const lastKey = useRef<string | null>(null);
 
   useEffect(() => {
     const root = document.documentElement;
     root.dataset.appearance = appearance;
 
-    const key = `${meanL.toFixed(3)}:${shadowHue}:${appearance}`;
-    if (lastIndexKey.current === key) return;
-    lastIndexKey.current = key;
+    const key = `${themeColor ?? ""}:${meanL.toFixed(3)}:${shadowHue}:${appearance}`;
+    if (lastKey.current === key) return;
+    lastKey.current = key;
 
-    const color = themeColorFromPalette(meanL, shadowHue, appearance === "dark");
+    const color = themeColorFromPalette(
+      meanL,
+      shadowHue,
+      appearance === "dark",
+      themeColor,
+    );
     let meta = document.querySelector('meta[name="theme-color"]');
     if (!meta) {
       meta = document.createElement("meta");
@@ -32,7 +41,7 @@ export function useAppearance(meanL: number, shadowHue: number): Appearance {
       document.head.appendChild(meta);
     }
     meta.setAttribute("content", color);
-  }, [appearance, meanL, shadowHue]);
+  }, [appearance, meanL, shadowHue, themeColor]);
 
   return appearance;
 }

@@ -1,6 +1,37 @@
-import type { Album, Photo } from "./types";
+import type { Album, Photo, PhotoPalette } from "./types";
+import generated from "./palettes.generated.json";
 
 const F = "/fixtures";
+
+type GeneratedPalettes = Record<
+  string,
+  {
+    topBand: string;
+    bottomBand: string;
+    shadowHue: number;
+    meanL: number;
+    themeColor: string;
+    blurTop: number;
+    blurBottom: number;
+  }
+>;
+
+const palettes = generated as GeneratedPalettes;
+
+function paletteFor(src: string): PhotoPalette {
+  const file = src.slice(src.lastIndexOf("/") + 1);
+  const p = palettes[file];
+  if (!p) throw new Error(`Missing pre-analyzed palette for ${file} — run npm run analyze:palettes`);
+  return {
+    topBand: p.topBand,
+    bottomBand: p.bottomBand,
+    shadowHue: p.shadowHue,
+    meanL: p.meanL,
+    themeColor: p.themeColor,
+    blurTop: p.blurTop,
+    blurBottom: p.blurBottom,
+  };
+}
 
 const base: Omit<Photo, "id" | "note" | "exif">[] = [
   {
@@ -8,12 +39,7 @@ const base: Omit<Photo, "id" | "note" | "exif">[] = [
     width: 1024,
     height: 768,
     alt: "Night aerial view of Midtown Manhattan with the lit Empire State Building against a deep blue sky and orange sunset band.",
-    palette: {
-      topBand: "oklch(0.37 0.03 263)",
-      bottomBand: "oklch(0.28 0.03 76)",
-      shadowHue: 255,
-      meanL: 0.4,
-    },
+    palette: paletteFor(`${F}/0AC1BB00-8C93-4F82-9C83-33436BC20098_1_105_c.jpeg`),
     location: { label: "Midtown Manhattan, New York" },
     showLocation: false,
   },
@@ -22,12 +48,7 @@ const base: Omit<Photo, "id" | "note" | "exif">[] = [
     width: 1024,
     height: 768,
     alt: "Sunset over the sea with a silhouetted lighthouse and trees on a coastal hill against pink and orange sky.",
-    palette: {
-      topBand: "oklch(0.55 0.02 315)",
-      bottomBand: "oklch(0.16 0.01 20)",
-      shadowHue: 260,
-      meanL: 0.55,
-    },
+    palette: paletteFor(`${F}/7A415A50-CA9E-4FCD-939C-C288399514AD_1_105_c.jpeg`),
     location: { label: "Sokcho, Gangwon-do" },
     showLocation: false,
   },
@@ -36,12 +57,7 @@ const base: Omit<Photo, "id" | "note" | "exif">[] = [
     width: 1024,
     height: 768,
     alt: "Wide green hillside under heavy overcast sky with two dark leafy trees on the ridge line.",
-    palette: {
-      topBand: "oklch(0.69 0.02 255)",
-      bottomBand: "oklch(0.28 0.07 127)",
-      shadowHue: 145,
-      meanL: 0.57,
-    },
+    palette: paletteFor(`${F}/8C7ADF19-6C90-49C8-B0CD-FB07C1163C0F_1_105_c.jpeg`),
     location: { label: "Seoul metro edge" },
     showLocation: false,
   },
@@ -50,12 +66,7 @@ const base: Omit<Photo, "id" | "note" | "exif">[] = [
     width: 1024,
     height: 768,
     alt: "High twilight view down the Han River with lit bridges and city lights under a blue-to-orange sky.",
-    palette: {
-      topBand: "oklch(0.55 0.09 254)",
-      bottomBand: "oklch(0.22 0.01 300)",
-      shadowHue: 255,
-      meanL: 0.49,
-    },
+    palette: paletteFor(`${F}/AD0590D4-82B3-43B3-ADED-564AC1E2DA56_1_105_c.jpeg`),
     location: { label: "Seoul, Han River" },
     showLocation: false,
   },
@@ -64,12 +75,7 @@ const base: Omit<Photo, "id" | "note" | "exif">[] = [
     width: 768,
     height: 1024,
     alt: "Silhouetted visitors on a glass observation deck framing the lit Empire State Building at sunset.",
-    palette: {
-      topBand: "oklch(0.34 0.02 279)",
-      bottomBand: "oklch(0.10 0.02 354)",
-      shadowHue: 40,
-      meanL: 0.35,
-    },
+    palette: paletteFor(`${F}/E751B9B9-54AA-4A27-883C-40FB02777A0A_1_105_c.jpeg`),
     location: { label: "Midtown Manhattan observation deck" },
     showLocation: false,
   },
@@ -78,17 +84,11 @@ const base: Omit<Photo, "id" | "note" | "exif">[] = [
     width: 1024,
     height: 768,
     alt: "Night crowd watching Banpo Bridge’s pink-lit Moonlight Rainbow Fountain spray into the Han River.",
-    palette: {
-      topBand: "oklch(0.34 0.03 254)",
-      bottomBand: "oklch(0.23 0.01 123)",
-      shadowHue: 250,
-      meanL: 0.29,
-    },
+    palette: paletteFor(`${F}/FEA65A2C-108D-4AFC-A148-2AD38E2EDDC2_1_105_c.jpeg`),
     location: { label: "Banpo Hangang Park, Seoul" },
     showLocation: false,
   },
 ];
-
 const passA: Array<{ note: string; exif: Photo["exif"] }> = [
   {
     note: "Midtown from ~265 m. Horizon clipped warm; shadow detail held at ISO 400.",

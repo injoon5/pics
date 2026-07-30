@@ -47,8 +47,6 @@ export const dialDefaults = {
   },
   Card: {
     thickness: [card.thickness, 0.5, 4] as DialTuple,
-    matTop: [card.matTop, 4, 24] as DialTuple,
-    matBottom: [card.matBottom, 8, 48] as DialTuple,
     grainOpacity: [card.grainOpacity, 0, 0.12] as DialTuple,
     flipEase: {
       x1: [flip.ease[0], 0, 1] as DialTuple,
