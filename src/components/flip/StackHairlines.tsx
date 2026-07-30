@@ -27,7 +27,18 @@ export function StackHairlines({ remaining, total, seedId }: StackHairlinesProps
       stack.hairlineBaseAlpha - (i - 1) * stack.hairlineAlphaStep,
     );
     const y = i * stack.layerGap;
-    shadows.push(`0 ${y}px 0 0 oklch(0.55 0.01 86 / ${alpha.toFixed(3)})`);
+    // Spec §5.3: `0 Npx 0 -0.5px` + separator (warm grey), not wireframe black
+    shadows.push(
+      `0 ${y}px 0 -0.5px color-mix(in oklch, var(--color-separator) ${Math.round(alpha * 100)}%, transparent)`,
+    );
+  }
+
+  // Beyond maxVisibleLayers the eye stops counting — one thicker terminal
+  if (remaining > stack.maxVisibleLayers) {
+    const y = (stack.maxVisibleLayers + 1) * stack.layerGap + 1;
+    shadows.push(
+      `0 ${y}px 0 0 color-mix(in oklch, var(--color-separator) 35%, transparent)`,
+    );
   }
 
   if (layers === 0) return null;

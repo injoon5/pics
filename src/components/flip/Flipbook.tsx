@@ -128,8 +128,12 @@ export function Flipbook({ album }: FlipbookProps) {
 
   const { scrollY } = useScroll({ container: scrollerRef });
 
-  const pageH = stableHeight > 0 ? stableHeight : 1;
-  const g: MotionValue<number> = useTransform(scrollY, (y) => y / pageH);
+  // Progress must track spacer height (100dvh / scroller clientHeight), not the
+  // frozen stage height — otherwise Motion path desyncs when dvh ≠ innerHeight.
+  const g: MotionValue<number> = useTransform(scrollY, (y) => {
+    const h = scrollerRef.current?.clientHeight || stableHeight || 1;
+    return y / h;
+  });
 
   const mountedStart = Math.max(
     0,
@@ -148,9 +152,10 @@ export function Flipbook({ album }: FlipbookProps) {
     (index: number) => {
       const next = Math.max(0, Math.min(index, maxG));
       if (next === settledIndex) return;
-      const now = performance.now();
+      const now = window.performance.now();
       const elapsedMs = Math.max(1, now - (lastSettleTs.current || now));
-      const px = Math.abs(next - settledIndex) * pageH;
+      const pagePx = scrollerRef.current?.clientHeight || stableHeight || 1;
+      const px = Math.abs(next - settledIndex) * pagePx;
       const releaseVelocity = (px / elapsedMs) * 1000;
       lastSettleTs.current = now;
       setSettledIndex(next);
@@ -160,7 +165,7 @@ export function Flipbook({ album }: FlipbookProps) {
         void playFlip(releaseVelocity);
       }
     },
-    [maxG, pageH, settledIndex, setLastSettledIndex],
+    [maxG, settledIndex, setLastSettledIndex, stableHeight],
   );
 
   useEffect(() => {
@@ -168,7 +173,7 @@ export function Flipbook({ album }: FlipbookProps) {
     if (!el) return;
 
     const readIndex = () => {
-      const h = el.clientHeight || pageH;
+      const h = el.clientHeight || stableHeight || 1;
       settleTo(Math.round(el.scrollTop / h));
     };
 
@@ -185,18 +190,18 @@ export function Flipbook({ album }: FlipbookProps) {
       el.removeEventListener("scroll", onScroll);
       el.removeEventListener("scrollend", readIndex);
     };
-  }, [pageH, settleTo]);
+  }, [stableHeight, settleTo]);
 
   const scrollToIndex = useCallback(
     (index: number, behavior: ScrollBehavior = "auto") => {
       const el = scrollerRef.current;
       if (!el) return;
-      const h = el.clientHeight || pageH;
+      const h = el.clientHeight || stableHeight || 1;
       const clamped = Math.max(0, Math.min(index, maxG));
       el.scrollTo({ top: clamped * h, behavior });
       settleTo(clamped);
     },
-    [maxG, pageH, settleTo],
+    [maxG, stableHeight, settleTo],
   );
 
   // Keyboard

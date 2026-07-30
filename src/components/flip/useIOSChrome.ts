@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { chrome, hinge } from "@/design/tokens";
 
 export interface IOSChromeState {
+  /** Last known inset; prefer CSS `--chrome-inset` during scroll (§0.3). */
   chromeInset: number;
   stableHeight: number;
   collapsed: boolean;
@@ -15,12 +16,15 @@ const COLLAPSED_INSET_PX =
 
 /**
  * Stable hinge height from window.innerHeight; chrome inset from visualViewport.
+ * Inset is written to `--chrome-inset` every frame — React state only when
+ * `collapsed` flips (§0.3 / §7.1–7.2).
  */
 export function useIOSChrome(hingeRatio: number = hinge.ratio): IOSChromeState {
-  const [chromeInset, setChromeInset] = useState(0);
   const [stableHeight, setStableHeight] = useState(
     typeof window !== "undefined" ? window.innerHeight : 0,
   );
+  const [collapsed, setCollapsed] = useState(false);
+  const [chromeInset, setChromeInset] = useState(0);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -35,19 +39,29 @@ export function useIOSChrome(hingeRatio: number = hinge.ratio): IOSChromeState {
     window.addEventListener("orientationchange", measureStable);
 
     let raf = 0;
+    let lastCollapsed: boolean | null = null;
+    let lastInset = -1;
+
     const measureChrome = () => {
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {
         const vv = window.visualViewport;
-        if (!vv) {
-          setChromeInset(0);
-          root.style.setProperty("--chrome-inset", "0px");
-          return;
+        const inset = vv
+          ? Math.max(0, window.innerHeight - vv.height - vv.offsetTop)
+          : 0;
+
+        // Direct style write — no React during URL-bar motion
+        if (inset !== lastInset) {
+          lastInset = inset;
+          root.style.setProperty("--chrome-inset", `${inset}px`);
         }
-        const inset = window.innerHeight - vv.height - vv.offsetTop;
-        const clamped = Math.max(0, inset);
-        setChromeInset(clamped);
-        root.style.setProperty("--chrome-inset", `${clamped}px`);
+
+        const nextCollapsed = inset < COLLAPSED_INSET_PX;
+        if (lastCollapsed === null || nextCollapsed !== lastCollapsed) {
+          lastCollapsed = nextCollapsed;
+          setCollapsed(nextCollapsed);
+          setChromeInset(inset);
+        }
       });
     };
 
@@ -69,6 +83,6 @@ export function useIOSChrome(hingeRatio: number = hinge.ratio): IOSChromeState {
   return {
     chromeInset,
     stableHeight,
-    collapsed: chromeInset < COLLAPSED_INSET_PX,
+    collapsed,
   };
 }

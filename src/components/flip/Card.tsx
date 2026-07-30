@@ -31,7 +31,6 @@ export interface CardProps {
   axis: MediaAxis;
   useCssTimeline: boolean;
   reducedMotion: boolean;
-  zBase?: number;
 }
 
 const easeSamples = sampleCubicBezier(flip.ease, flip.keyframeStops);
@@ -49,13 +48,11 @@ function easeFlip(t: number): number {
   return a.v + (b.v - a.v) * frac;
 }
 
+/** Peaks at u≈0, dead by contactPeakUntil (§5.4). */
 function contactAlpha(u: number): number {
   if (u <= 0) return 0.22;
-  if (u >= shadow.contactPeakUntil) {
-    const t = (u - shadow.contactPeakUntil) / (1 - shadow.contactPeakUntil);
-    return 0.22 * (1 - clamp(t, 0, 1));
-  }
-  return 0.22;
+  if (u >= shadow.contactPeakUntil) return 0;
+  return 0.22 * (1 - u / shadow.contactPeakUntil);
 }
 
 function castAlpha(u: number): number {
@@ -81,9 +78,8 @@ export function Card({
   axis,
   useCssTimeline,
   reducedMotion,
-  zBase = 10,
 }: CardProps) {
-  const zMv = useMotionValue(zBase + index);
+  const zMv = useMotionValue(50 - index);
 
   const u = useTransform(g, (gv) => clamp(gv - index, 0, 1));
   const rot = useTransform(u, (uv) => -180 * easeFlip(uv));
@@ -117,8 +113,9 @@ export function Card({
   const transformY = useMotionTemplate`rotateY(${rot}deg)`;
   const transform = axis === "y" ? transformY : transformX;
 
+  // §4.4 — step at u=0.5; below hinge: 50−i (current on top), above: 50+i
   useMotionValueEvent(u, "change", (uv) => {
-    zMv.set(uv >= 0.5 ? zBase + 100 - index : zBase + index);
+    zMv.set(uv < 0.5 ? 50 - index : 50 + index);
   });
 
   const cssVars = useMemo(
@@ -138,27 +135,28 @@ export function Card({
     paddingBottom: cardTokens.matBottom,
   };
 
+  // §5.6 — never put opacity on .card; animate face children only
+  const faceOpacityStyle = reducedMotion ? { opacity: opacityMv } : undefined;
+
   return (
     <motion.div
       className={`card${useCssTimeline && !reducedMotion ? " card--css-flip" : ""}`}
       style={
-        reducedMotion
-          ? { ...cssVars, opacity: opacityMv, zIndex: zMv, boxShadow }
-          : useCssTimeline
-            ? { ...cssVars, zIndex: zMv, boxShadow }
-            : { ...cssVars, transform, zIndex: zMv, boxShadow }
+        useCssTimeline || reducedMotion
+          ? { ...cssVars, zIndex: zMv, boxShadow }
+          : { ...cssVars, transform, zIndex: zMv, boxShadow }
       }
     >
       {/* Back face — caption / intro / colophon */}
-      <div className="face face--back">
+      <motion.div className="face face--back" style={faceOpacityStyle}>
         <div className="relative flex h-full flex-col justify-end p-5 pb-8">
           {backContent}
         </div>
         <div className="paper-grain" aria-hidden />
-      </div>
+      </motion.div>
 
       {/* Front face — print (or empty sleeve) */}
-      <div className="face face--front">
+      <motion.div className="face face--front" style={faceOpacityStyle}>
         {photo ? (
           <div className="relative flex h-full flex-col bg-surface-recto" style={matPad}>
             <motion.div
@@ -188,8 +186,10 @@ export function Card({
           </div>
         )}
         <div className="paper-grain" aria-hidden />
-        <motion.div className="sheen" style={{ opacity: sheenOp }} aria-hidden />
-      </div>
+        {!reducedMotion ? (
+          <motion.div className="sheen" style={{ opacity: sheenOp }} aria-hidden />
+        ) : null}
+      </motion.div>
 
       <div className="rim" aria-hidden />
     </motion.div>
