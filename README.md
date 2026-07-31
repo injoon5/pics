@@ -90,6 +90,16 @@ a fixture.
   projection on the hinge drag, which is the one threshold the app decides
   itself.
 
+Route changes use the native View Transitions API (`src/lib/viewTransition.ts`)
+— not React's `<ViewTransition>` or Next's `experimental.viewTransition`, both
+of which need a React experimental build. App Router navigation is async while
+`startViewTransition` wants a callback that mutates and resolves, so the two
+halves shake hands: the caller parks a resolver, the destination signals on
+mount, and a 900ms timeout releases it if the navigation never lands — a page
+frozen under its own snapshot is the one genuinely bad failure this API has.
+Where view transitions are unavailable the FLIP below is the fallback; they
+never both run.
+
 The shared-element flights are **not** Motion `layoutId`, which is what §2.5
 reaches for. Base UI 1.6 makes `Dialog.Portal` mandatory, so the sheet's
 thumbnails live in exactly the portal §2.5 warns will break a shared-layout

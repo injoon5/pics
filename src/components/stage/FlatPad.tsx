@@ -19,6 +19,7 @@ import type { Album } from "@/fixtures/albums";
 import { CaptionBack, IntroBack } from "./Card";
 import { FilmCounter } from "./FilmCounter";
 import { ContactSheet } from "@/components/sheet/ContactSheet";
+import { BackToAlbums } from "@/components/chrome/BackToAlbums";
 import { useStableViewport } from "@/hooks/useStableViewport";
 import { useIOSChrome } from "@/hooks/useIOSChrome";
 import { useAppearance } from "@/hooks/useAppearance";
@@ -137,6 +138,8 @@ export function FlatPad({ album }: { album: Album }) {
           )}
         </div>
       </div>
+
+      <BackToAlbums axis="y" />
 
       <div className="fixed right-4 z-40" style={{ top: "calc(var(--hinge-y) + 12px)" }}>
         <FilmCounter index={Math.max(index - 1, 0)} total={photos.length} />

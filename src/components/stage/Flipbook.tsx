@@ -38,6 +38,7 @@ import { Card, CaptionBack, IntroBack, ColophonBack } from "./Card";
 import { FilmCounter } from "./FilmCounter";
 import { ProgressiveBlur } from "@/components/chrome/ProgressiveBlur";
 import { ContactSheet } from "@/components/sheet/ContactSheet";
+import { BackToAlbums } from "@/components/chrome/BackToAlbums";
 import { useStableViewport } from "@/hooks/useStableViewport";
 import { useIOSChrome } from "@/hooks/useIOSChrome";
 import { useAppearance } from "@/hooks/useAppearance";
@@ -482,6 +483,8 @@ export function Flipbook({
           />
         </>
       )}
+
+      <BackToAlbums axis={axis} />
 
       {/* The counter sits with the caption, aligned to its measure, rather
           than pinned to the window edge — on a wide screen the edge is a long

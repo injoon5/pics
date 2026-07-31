@@ -20,6 +20,7 @@ import { useRef, useState } from "react";
 import type { Album } from "@/fixtures/albums";
 import { sleeve as tokens, durations, cssEase } from "@/design/tokens";
 import { stashPrint } from "@/lib/flight";
+import { routeTransition, supportsViewTransitions } from "@/lib/viewTransition";
 import { sources, fallbackSrc } from "@/lib/image";
 import { takenAt } from "@/lib/format";
 
@@ -49,7 +50,20 @@ export function Sleeve({ album }: { album: Album }) {
         setPressed(true);
         router.prefetch(`/a/${album.slug}`);
       }}
-      onClick={() => stashPrint(`album:${album.slug}`, cover.current)}
+      onClick={(e) => {
+        /* One animation per navigation. The FLIP that flies the cover into the
+           pad is the *fallback* — where view transitions exist they own the
+           route change, and running both meant the cover expanding to
+           full-screen underneath a cross-fade of the same two pages. */
+        if (!supportsViewTransitions()) {
+          stashPrint(`album:${album.slug}`, cover.current);
+          return;
+        }
+        // Modified clicks (new tab, download) keep the browser's behaviour.
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+        e.preventDefault();
+        routeTransition(() => router.push(`/a/${album.slug}`), "in");
+      }}
       onPointerUp={() => setPressed(false)}
       onPointerCancel={() => setPressed(false)}
       onPointerLeave={() => setPressed(false)}

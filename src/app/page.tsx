@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrivedOnListing } from "@/components/chrome/ArrivedOnListing";
 import { Sleeve } from "@/components/sleeve/Sleeve";
 import { publishedAlbums } from "@/fixtures/albums";
 
@@ -15,6 +16,7 @@ export default function AlbumListing() {
 
   return (
     <main className="mx-auto min-h-[100dvh] w-full max-w-[960px] px-5 pb-24 pt-14 sm:px-8 sm:pt-20">
+      <ArrivedOnListing />
       <header className="mb-10 sm:mb-14">
         <h1 className="album-title m-0 text-[32px] tracking-[-0.01em] text-text-primary sm:text-[40px]">
           Prints
