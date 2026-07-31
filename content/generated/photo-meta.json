@@ -1,0 +1,134 @@
+{
+  "manhattan-blue-hour/great-lawn.jpg": {
+    "exif": {
+      "make": "Apple",
+      "model": "iPhone 11 Pro",
+      "lens": "iPhone 11 Pro back camera 6mm f/2",
+      "aperture": 2,
+      "shutter": "1/2817",
+      "iso": 25,
+      "focalLength": 52,
+      "takenAt": "2025-07-05T14:42:57.000Z"
+    },
+    "color": {
+      "average": "#6f796c",
+      "palette": [
+        "#273800",
+        "#a5acb5",
+        "#acb2b9",
+        "#b4b7bc"
+      ],
+      "isDark": true
+    }
+  },
+  "manhattan-blue-hour/top-of-the-rock.jpg": {
+    "exif": {
+      "make": "Apple",
+      "model": "iPhone 11 Pro",
+      "lens": "iPhone 11 Pro back camera 6mm f/2",
+      "aperture": 2,
+      "shutter": "1/20",
+      "iso": 400,
+      "focalLength": 52,
+      "takenAt": "2025-02-01T17:50:35.000Z"
+    },
+    "color": {
+      "average": "#52463c",
+      "palette": [
+        "#352719",
+        "#271d15",
+        "#2d2217",
+        "#3a4558"
+      ],
+      "isDark": true
+    }
+  },
+  "manhattan-blue-hour/through-the-glass.jpg": {
+    "exif": {
+      "make": "Apple",
+      "model": "iPhone 11 Pro",
+      "lens": "iPhone 11 Pro back camera 6mm f/2",
+      "aperture": 2,
+      "shutter": "1/23",
+      "iso": 500,
+      "focalLength": 52,
+      "takenAt": "2025-02-01T17:47:34.000Z"
+    },
+    "color": {
+      "average": "#48413e",
+      "palette": [
+        "#080404",
+        "#484a54",
+        "#393b46",
+        "#56555a"
+      ],
+      "isDark": true
+    }
+  },
+  "seoul-after-dark/han-river-dusk.jpg": {
+    "exif": {
+      "make": "Apple",
+      "model": "iPhone 15 Pro Max",
+      "lens": "iPhone 15 Pro Max back camera 6.765mm f/1.78",
+      "aperture": 1.8,
+      "shutter": "1/50",
+      "iso": 800,
+      "focalLength": 24,
+      "takenAt": "2026-07-11T20:23:21.000Z"
+    },
+    "color": {
+      "average": "#576373",
+      "palette": [
+        "#151419",
+        "#181a25",
+        "#3c75ac",
+        "#393646"
+      ],
+      "isDark": true
+    }
+  },
+  "seoul-after-dark/west-sea-lighthouse.jpg": {
+    "exif": {
+      "make": "Apple",
+      "model": "iPhone 11 Pro",
+      "lens": "iPhone 11 Pro back camera 6mm f/2",
+      "aperture": 2,
+      "shutter": "1/122",
+      "iso": 125,
+      "focalLength": 52,
+      "takenAt": "2025-08-16T05:24:01.000Z"
+    },
+    "color": {
+      "average": "#936e63",
+      "palette": [
+        "#010101",
+        "#b9b5b8",
+        "#b7a7ab",
+        "#95534a"
+      ],
+      "isDark": true
+    }
+  },
+  "seoul-after-dark/moonlight-fountain.jpg": {
+    "exif": {
+      "make": "Apple",
+      "model": "iPhone 17",
+      "lens": "iPhone 17 back camera 5.96mm f/1.6",
+      "aperture": 1.6,
+      "shutter": "1s",
+      "iso": 32,
+      "focalLength": 26,
+      "takenAt": "2026-05-02T19:43:40.000Z"
+    },
+    "color": {
+      "average": "#2a2e31",
+      "palette": [
+        "#2b3845",
+        "#181a15",
+        "#2c353d",
+        "#090908"
+      ],
+      "isDark": true
+    }
+  }
+}
