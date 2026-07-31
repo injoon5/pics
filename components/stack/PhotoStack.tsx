@@ -23,12 +23,12 @@ export function PhotoStack({
 }) {
   const tuning = useDialKit("Stack", {
     scrollPerCard: [85, 40, 160, 5],
-    // Vertical room reserved above and below the fold for the floating chrome.
-    chromeGap: [86, 40, 160, 2],
-    maxCardVw: [74, 45, 92, 1],
+    // Side margin only — prints run the full height of their half.
+    cardInset: [12, 0, 48, 1],
+    maxCardPx: [420, 280, 640, 10],
     flipSpan: [0.82, 0.4, 1, 0.02],
     pileOffset: [3, 0, 14, 0.5],
-    pileRotate: [0.9, 0, 5, 0.1],
+    pileRotate: [0.6, 0, 4, 0.1],
     grainPhoto: [0.045, 0, 0.15, 0.005],
     grainPaper: [0.14, 0, 0.3, 0.005],
   });
@@ -72,8 +72,9 @@ export function PhotoStack({
 
   const lastPhoto = photos[count - 1];
 
-  // Height is capped by the shorter half so the card always clears the chrome.
-  const cardWidth = `min(calc((50dvh - ${tuning.chromeGap}px) * 0.8), ${tuning.maxCardVw}vw, 300px)`;
+  // A print fills its half exactly, so the fold reads as one continuous edge.
+  const cardWidth = `min(calc(100vw - ${tuning.cardInset * 2}px), ${tuning.maxCardPx}px)`;
+  const cardHeight = `50dvh`;
 
   return (
     <>
@@ -82,6 +83,7 @@ export function PhotoStack({
         style={{
           height: `calc(${count} * ${tuning.scrollPerCard}dvh + 100dvh)`,
           ["--card-w" as string]: cardWidth,
+          ["--card-h" as string]: cardHeight,
         }}
       >
         <div className="sticky top-0 h-dvh overflow-hidden">
@@ -95,7 +97,7 @@ export function PhotoStack({
             {/* Bottom of the pile — the last photo's notes, once it empties. */}
             <div className="absolute inset-x-0 top-1/2 z-0 flex h-0 items-start justify-center">
               <div
-                className="hairline grain aspect-[4/5] w-[var(--card-w)] overflow-hidden rounded-2xl bg-paper dark:bg-paper-dark"
+                className="hairline grain h-[var(--card-h)] w-[var(--card-w)] overflow-hidden rounded-2xl bg-paper dark:bg-paper-dark"
                 style={{ ["--grain-opacity" as string]: tuning.grainPaper }}
               >
                 {lastPhoto ? <ExifBack photo={lastPhoto} compact /> : null}
@@ -128,9 +130,12 @@ export function PhotoStack({
       {/* Closing panel, after the pinned stage has released. */}
       <div
         className="relative flex min-h-[85dvh] items-center justify-center px-6"
-        style={{ ["--card-w" as string]: cardWidth }}
+        style={{
+          ["--card-w" as string]: cardWidth,
+          ["--card-h" as string]: cardHeight,
+        }}
       >
-        <div className="hairline aspect-[4/5] w-[var(--card-w)] overflow-hidden rounded-2xl">
+        <div className="hairline h-[var(--card-h)] w-[var(--card-w)] overflow-hidden rounded-2xl">
           <OutroPanel album={album} nextAlbum={nextAlbum} />
         </div>
       </div>

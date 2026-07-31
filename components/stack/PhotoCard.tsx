@@ -89,7 +89,7 @@ export function PhotoCard({
             dir * tuning.pileRotate * (depth * 0.5 + 1)
           }deg)`,
         }}
-        className="aspect-[4/5] w-[var(--card-w)]"
+        className="h-[var(--card-h)] w-[var(--card-w)]"
       >
         <motion.div
           className="preserve-3d relative h-full w-full rounded-2xl"
@@ -126,7 +126,7 @@ export function PhotoCard({
                 src={photo.src}
                 alt={photo.alt}
                 fill
-                sizes="(min-width: 640px) 300px, 70vw"
+                sizes="(min-width: 460px) 420px, 100vw"
                 className="object-cover"
                 priority={index < 2}
               />

@@ -3,15 +3,18 @@ import type { Album } from "@/lib/types";
 
 export function IntroBack({ album }: { album: Album }) {
   return (
-    <div className="flex h-full w-full flex-col gap-3 p-5">
+    <div
+      className="flex h-full w-full flex-col gap-4 p-6"
+      style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 4.25rem)" }}
+    >
       <div className="min-h-0 flex-1 overflow-hidden">
-        <h1 className="font-display text-xl font-medium leading-tight text-neutral-900 dark:text-neutral-100">
+        <h1 className="font-display text-2xl font-medium leading-tight text-neutral-900 dark:text-neutral-100">
           {album.title}
         </h1>
         {album.subtitle ? (
-          <p className="mt-1 text-sm text-neutral-500">{album.subtitle}</p>
+          <p className="mt-1.5 text-sm text-neutral-500">{album.subtitle}</p>
         ) : null}
-        <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-neutral-700 dark:text-neutral-300">
+        <p className="mt-4 line-clamp-6 text-sm leading-relaxed text-neutral-700 dark:text-neutral-300">
           {album.description}
         </p>
       </div>

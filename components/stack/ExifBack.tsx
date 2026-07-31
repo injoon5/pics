@@ -33,7 +33,12 @@ export function ExifBack({
     ].filter(Boolean);
 
     return (
-      <div className="flex h-full w-full flex-col gap-3 p-5">
+      <div
+        className="flex h-full w-full flex-col gap-4 p-6"
+        // The print runs to the bottom of the screen; keep text clear of the
+        // floating progress rail that sits over it.
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 4.25rem)" }}
+      >
         <div className="min-h-0 flex-1 overflow-hidden">
           <h2 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
             {photo.title}
@@ -43,7 +48,7 @@ export function ExifBack({
               {date}
             </p>
           ) : null}
-          <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-neutral-700 dark:text-neutral-300">
+          <p className="mt-3 line-clamp-6 text-sm leading-relaxed text-neutral-700 dark:text-neutral-300">
             {photo.note}
           </p>
         </div>
