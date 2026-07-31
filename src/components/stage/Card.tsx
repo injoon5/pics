@@ -389,7 +389,7 @@ function SoundToggle() {
         void unlock();
         setEnabled(!enabled);
       }}
-      className="press hit-40 relative flex w-fit items-center gap-2 text-[13px] text-text-secondary"
+      className="press hit-40 tappable relative flex w-fit items-center gap-2 text-[13px] text-text-secondary"
     >
       <span
         aria-hidden

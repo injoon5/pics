@@ -14,7 +14,8 @@
  */
 
 import { useCallback, useEffect, useRef } from "react";
-import { durations, gesture, cssEase } from "@/design/tokens";
+import { animate, useMotionValue, useMotionValueEvent } from "motion/react";
+import { gesture, springs } from "@/design/tokens";
 import { project, rubberband, VelocityTracker } from "@/lib/gesture";
 
 export function useHingeDrag(onOpen: () => void) {
@@ -26,21 +27,29 @@ export function useHingeDrag(onOpen: () => void) {
     tracker: new VelocityTracker(),
   });
 
-  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  /* §3.4 — the release velocity goes straight into the settle spring, so
+     there is no seam between dragging and animating. A fixed-duration
+     transition is the tell: the grabber stops tracking your finger and starts
+     playing a canned animation, and the join is visible however short it is. */
+  const y = useMotionValue(0);
+  const el = useRef<HTMLElement | null>(null);
 
-  const reset = useCallback((el: HTMLElement | null) => {
-    if (!el) return;
-    el.style.transition = `transform ${durations.sheetToggle}ms ${cssEase.drawer}`;
-    el.style.transform = "";
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => {
-      el.style.transition = "";
-    }, durations.sheetToggle);
-  }, []);
+  useMotionValueEvent(y, "change", (v) => {
+    if (el.current) el.current.style.transform = `translate3d(0, ${v}px, 0)`;
+  });
 
-  // Clearing the class off a detached node is harmless; leaving a pending
-  // timer that fires after unmount is not.
-  useEffect(() => () => clearTimeout(timer.current), []);
+  const reset = useCallback(
+    (node: HTMLElement | null) => {
+      el.current = node;
+      animate(y, 0, { ...springs.flipSettle, velocity: -state.current.tracker.velocity });
+    },
+    [y],
+  );
+
+  useEffect(() => {
+    const value = y;
+    return () => value.stop();
+  }, [y]);
 
   const onPointerDown = useCallback((e: React.PointerEvent<HTMLElement>) => {
     // A second finger mid-drag would jump the hinge (§3.4).
@@ -80,9 +89,11 @@ export function useHingeDrag(onOpen: () => void) {
           ? dy
           : gesture.sheetResistFrom +
             rubberband(dy - gesture.sheetResistFrom, window.innerHeight);
-      e.currentTarget.style.transform = `translate3d(0, ${shown}px, 0)`;
+      el.current = e.currentTarget;
+      y.stop();
+      y.set(shown);
     },
-    [onOpen, reset],
+    [onOpen, reset, y],
   );
 
   const onPointerUp = useCallback(

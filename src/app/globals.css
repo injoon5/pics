@@ -110,6 +110,7 @@
     --pane-w: 50vw;
     /* Room for the pile's edges to peek past the top card (§5.3). */
     --stack-peek: 20px;
+    --sag: 0px;
     /* Safari's floating bottom bar, measured from visualViewport (§7.2). */
     --chrome-inset: 0px;
     --thickness: 1.6px;
@@ -204,10 +205,28 @@
   .stage {
     position: fixed;
     inset: 0;
+    /* §3.4 — the sag at the ends of an album. `overscroll-behavior-y: none`
+       deliberately kills the native rubber band (§7.3), which is right — an
+       elastic *page* under a pad of prints is two objects — and then nothing
+       tells you that you have reached the end of the roll. So the pad itself
+       gives. Written by usePadGestures. */
+    transform: translate3d(0, var(--sag, 0px), 0);
     perspective: 1400px;
     perspective-origin: 50% var(--hinge-y);
     transform-style: preserve-3d;
+    /* Above the gesture layer, so a control printed on a card can be tapped —
+       the stage itself still passes every pointer straight through to the
+       gestures underneath. */
+    z-index: 20;
     pointer-events: none;
+  }
+
+  /* Opt back in. The colophon's sound toggle is the only interactive thing
+     printed on paper, and without this it inherits the stage's
+     `pointer-events: none` and is simply dead — which, for §7.6's only
+     control, means the sound can never be turned on at all. */
+  .tappable {
+    pointer-events: auto;
   }
 
   .card {

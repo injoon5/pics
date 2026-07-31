@@ -93,7 +93,16 @@ export const sheen = {
 
 /** Progressive blur — four layers on iOS, not six. §6.3 */
 export const blur = {
-  radii: [0.5, 1.5, 4, 10] as const,
+  /** Largest radius first, because it is paired with the *narrowest* mask.
+   *
+   *  This ordering is the whole effect. Each layer is opaque from the edge to
+   *  its first stop and fades out by its second, and the layers compound — so
+   *  the widest blur must be confined to the outermost sliver and the finest
+   *  one must reach furthest in. Pair them the other way round (0.5 first) and
+   *  the 10px layer is the one that persists deepest, which terminates in a
+   *  hard 10px cut across the photograph: the "smeared band" §6.3 is warning
+   *  about, rather than depth. */
+  radii: [10, 4, 1.5, 0.5] as const,
   /** Mask stops as [from%, to%] per layer, deliberately overlapping. */
   stops: [
     [0, 30],

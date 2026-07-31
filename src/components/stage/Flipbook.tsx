@@ -42,9 +42,11 @@ import { useIOSChrome } from "@/hooks/useIOSChrome";
 import { useAppearance } from "@/hooks/useAppearance";
 import { useWheelNormalise } from "@/hooks/useWheelNormalise";
 import { useHingeDrag } from "@/hooks/useHingeDrag";
+import { usePadGestures } from "@/hooks/usePadGestures";
 import { play, unlock, velocityFromRelease } from "@/design/sound";
 import { useUi } from "@/lib/store";
 import { warmDecode } from "@/lib/image";
+import { flyStashedTo, stashPrint } from "@/lib/flight";
 import { clamp } from "@/lib/gesture";
 import { appearanceFor } from "@/lib/color";
 import { easeFlip } from "@/lib/easing";
@@ -88,7 +90,14 @@ export function Flipbook({
      own band, so the caption's last line is never blurred. */
   useEffect(() => {
     const root = document.documentElement.style;
-    root.setProperty("--blur-top", `calc(var(--hinge-y) * ${p.topBlur})`);
+    /* Never shorter than the iOS status bar. The top band's job is partly to
+       be the thing the status bar sits on — `black-translucent` runs the page
+       under it — and a band that stops short of the safe-area inset leaves the
+       clock over bare photograph. */
+    root.setProperty(
+      "--blur-top",
+      `max(calc(var(--hinge-y) * ${p.topBlur}), calc(env(safe-area-inset-top) + 32px))`,
+    );
     root.setProperty("--blur-bottom", `calc(var(--pane-h) * ${p.bottomBlur})`);
   }, [p.topBlur, p.bottomBlur]);
 
@@ -239,6 +248,14 @@ export function Flipbook({
     };
   }, [onSettle]);
 
+  /* §9 — the sleeve empties into the hinge. The print the sleeve was showing
+     flies into the pile, which is where a wallet's prints go. Runs once, on
+     mount, and is a no-op on a direct visit or a reload. */
+  const stage = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    flyStashedTo(`album:${album.slug}`, stage.current);
+  }, [album.slug]);
+
   /* ── the photo currently on top of the flipped pile ─────────────────── */
   const current = index > 0 ? photos[Math.min(index, photos.length) - 1] : undefined;
   useAppearance(current?.palette);
@@ -344,11 +361,31 @@ export function Flipbook({
 
   const openBrowse = useCallback(() => {
     void unlock();
-    if (onBrowse) onBrowse();
-    else setSheetOpen(true);
+    if (onBrowse) return onBrowse();
+    // §8 — the same print flies to its grid cell. Measured before the sheet
+    // mounts, because after that the pad is behind a modal.
+    stashPrint(
+      "sheet",
+      document.querySelector<HTMLImageElement>(".card[data-flips=true] .mat img"),
+    );
+    setSheetOpen(true);
   }, [onBrowse, setSheetOpen]);
 
+  /* And back: the sheet stashes the cell it is leaving from, and the pad
+     catches it. Deferred a frame so the stage has laid out first. */
+  useEffect(() => {
+    if (sheetOpen) return;
+    const frame = requestAnimationFrame(() => {
+      flyStashedTo(
+        "sheet-return",
+        document.querySelector<HTMLElement>(".card[data-flips=true] .mat"),
+      );
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [sheetOpen, index]);
+
   const hingeDrag = useHingeDrag(openBrowse);
+  const padGestures = usePadGestures(openBrowse);
 
   /* The cards that can be on screen are `floor(g)−1` (lying face-up above the
      hinge), `floor(g)` (flipping) and `floor(g)+1` (the next back). With
@@ -375,6 +412,17 @@ export function Flipbook({
 
   return (
     <>
+      {/* The gesture surface for pinch-to-open and the end-of-album sag (§8,
+          §3.4). `touch-action: pan-y` is what lets it sit over the whole pad
+          without taking the scroll away: the browser keeps the vertical pan,
+          and we still see every pointer. Below the grabber and the sheet in
+          the stacking order, so neither loses its own events. */}
+      <div
+        aria-hidden
+        className="fixed inset-0 z-10 touch-pan-y"
+        {...padGestures}
+      />
+
       {/* The scroll sections. Empty spacers: `scroll-snap-stop: always` on
           every one, because without it a hard flick skips three photos and
           the pile appears to teleport (§4.2). */}
@@ -387,7 +435,12 @@ export function Flipbook({
       {/* The 3D context. Nothing above this element may set opacity, a
           filter, a backdrop-filter, a mask, or overflow:hidden with a radius
           — every one of them flattens it on iOS (§5.6). */}
-      <div className="stage" data-axis={axis} data-path={cssPath ? "css" : "motion"}>
+      <div
+        ref={stage}
+        className="stage"
+        data-axis={axis}
+        data-path={cssPath ? "css" : "motion"}
+      >
         {/* The flipped pile, above the hinge: mirrored hairlines under the
             print you're looking at. */}
         <Stack

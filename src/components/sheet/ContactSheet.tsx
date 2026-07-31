@@ -30,16 +30,18 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
+import { animate, motion, useMotionTemplate, useMotionValue } from "motion/react";
 import type { Photo } from "@/fixtures/albums";
 import { Sprockets } from "./Sprockets";
 import { ChinagraphMark } from "./ChinagraphMark";
 import { Loupe, type LoupeHandle } from "./Loupe";
-import { durations, sheet as tokens, gesture, cssEase } from "@/design/tokens";
+import { durations, sheet as tokens, gesture, cssEase, springs } from "@/design/tokens";
 import { rubberband, shouldDismiss, VelocityTracker } from "@/lib/gesture";
 import { jitter } from "@/lib/rng";
 import { frameNumber } from "@/lib/format";
 import { sources, fallbackSrc } from "@/lib/image";
 import { play, unlock } from "@/design/sound";
+import { flyStashedTo, stashPrint } from "@/lib/flight";
 import { useDials } from "@/design/dials";
 
 export type ContactSheetProps = {
@@ -75,17 +77,35 @@ export function ContactSheet({
   }, []);
 
   useEffect(() => {
-    if (open) {
-      setFocused(index);
-      void unlock();
-      play("sheetOpen");
-    }
+    if (!open) return;
+    setFocused(index);
+    void unlock();
+    play("sheetOpen");
+
+    // The pad's print lands in its own cell. A frame's delay, so the grid has
+    // been laid out and the cell has a rect to fly to.
+    const frame = requestAnimationFrame(() => {
+      flyStashedTo(
+        "sheet",
+        host.current?.querySelector<HTMLElement>(`[data-frame="${index}"] img`) ?? null,
+      );
+    });
+    return () => cancelAnimationFrame(frame);
   }, [open, index]);
+
+  /** Hand the print back to the pad on the way out. */
+  const stashCell = useCallback((i: number) => {
+    stashPrint(
+      "sheet-return",
+      host.current?.querySelector<HTMLImageElement>(`[data-frame="${i}"] img`) ?? null,
+    );
+  }, []);
 
   const close = useCallback(() => {
     play("sheetClose");
+    stashCell(index);
     onOpenChange(false);
-  }, [onOpenChange]);
+  }, [onOpenChange, stashCell, index]);
 
   return (
     <div ref={host}>
@@ -115,6 +135,7 @@ export function ContactSheet({
               dismissVelocity={p.dismissVelocity}
               onSelect={(i) => {
                 play("sheetClose");
+                stashCell(i);
                 onSelect(i);
               }}
               onDismiss={close}
@@ -152,6 +173,11 @@ function SheetBody({
   loupe: React.RefObject<LoupeHandle | null>;
 }) {
   const grid = useRef<HTMLDivElement>(null);
+
+  // A MotionValue rather than a style write, so the release can be handed to a
+  // spring that carries the finger's velocity through the settle.
+  const sheetY = useMotionValue(0);
+  const sheetTransform = useMotionTemplate`translate3d(0, ${sheetY}px, 0)`;
 
   /* ── the drag ──────────────────────────────────────────────────────────
      Dismiss on velocity, not distance. A flick should be enough; requiring
@@ -230,9 +256,7 @@ function SheetBody({
 
     // Resistance rather than a hard stop: the sheet gives, which tells you it
     // is being held rather than that you have hit a wall (§3.4).
-    const resisted = rubberband(dy, window.innerHeight);
-    const el = grid.current?.parentElement;
-    if (el) el.style.transform = `translate3d(0, ${resisted}px, 0)`;
+    sheetY.set(rubberband(dy, window.innerHeight));
   };
 
   const onPointerUp = (e: React.PointerEvent) => {
@@ -242,14 +266,13 @@ function SheetBody({
     clearTimeout(d.longPress);
     d.active = false;
 
-    const el = grid.current?.parentElement;
-    if (el) {
-      el.style.transition = `transform ${durations.sheetToggle}ms ${cssEase.drawer}`;
-      el.style.transform = "";
-      setTimeout(() => {
-        if (el) el.style.transition = "";
-      }, durations.sheetToggle);
-    }
+    /* §3.4 — hand the release velocity straight to the settle spring, so
+       there is no seam between dragging and animating. A fixed-duration
+       transition here is the tell: the sheet stops tracking your finger and
+       starts playing a canned animation, and the join is visible however
+       short you make it. */
+    const releaseVelocity = d.tracker.velocity;
+    animate(sheetY, 0, { ...springs.flipSettle, velocity: releaseVelocity });
 
     if (d.holding) {
       loupe.current?.hide();
@@ -261,7 +284,12 @@ function SheetBody({
     const elapsed = performance.now() - d.startTime;
 
     if (d.committed) {
-      if (Math.abs(dy) / elapsed > dismissVelocity) onDismiss();
+      // Velocity, not distance. A flick is enough — requiring the sheet to
+      // travel some fraction of the screen is what makes web sheets feel
+      // unlike native ones.
+      if (shouldDismiss(dy, elapsed) || Math.abs(dy) / elapsed > dismissVelocity) {
+        onDismiss();
+      }
       return;
     }
 
@@ -289,13 +317,13 @@ function SheetBody({
   };
 
   return (
-    <div
+    <motion.div
       className="sheet-frame relative min-h-full px-8 pb-16 pt-10"
+      style={{ transform: sheetTransform, touchAction: "none" }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
-      style={{ touchAction: "none" }}
     >
       <Sprockets side="left" />
       <Sprockets side="right" />
@@ -364,6 +392,6 @@ function SheetBody({
           );
         })}
       </div>
-    </div>
+    </motion.div>
   );
 }

@@ -14,16 +14,18 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { Album } from "@/fixtures/albums";
 import { Stack } from "@/components/stage/Stack";
 import { sleeve as tokens, durations, cssEase, type as typeTokens } from "@/design/tokens";
 import { jitter, seeded } from "@/lib/rng";
+import { stashPrint } from "@/lib/flight";
 import { sources, fallbackSrc } from "@/lib/image";
 
 export function Sleeve({ album }: { album: Album }) {
   const router = useRouter();
   const [pressed, setPressed] = useState(false);
+  const topPrint = useRef<HTMLImageElement>(null);
 
   const tilt = (jitter(album.slug, tokens.tiltDegrees * 2).dx / tokens.tiltDegrees) *
     tokens.tiltDegrees;
@@ -41,6 +43,10 @@ export function Sleeve({ album }: { album: Album }) {
         setPressed(true);
         router.prefetch(`/a/${album.slug}`);
       }}
+      // §9 — the sleeve empties into the hinge. Measured on click rather than
+      // on pointerdown: a press that turns into a scroll should leave nothing
+      // behind, and the stash expires anyway.
+      onClick={() => stashPrint(`album:${album.slug}`, topPrint.current)}
       onPointerUp={() => setPressed(false)}
       onPointerCancel={() => setPressed(false)}
       onPointerLeave={() => setPressed(false)}
@@ -97,6 +103,7 @@ export function Sleeve({ album }: { album: Album }) {
                     <source key={s.type} type={s.type} srcSet={s.srcSet} sizes="40vw" />
                   ))}
                   <img
+                    ref={i === 0 ? topPrint : undefined}
                     src={fallbackSrc(photo)}
                     alt=""
                     className="print-outline h-full w-full rounded-image object-cover"
