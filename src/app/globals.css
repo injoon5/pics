@@ -108,6 +108,8 @@
     --pane-h: 50vh;
     --hinge-x: 50vw;
     --pane-w: 50vw;
+    /* Room for the pile's edges to peek past the top card (§5.3). */
+    --stack-peek: 20px;
     /* Safari's floating bottom bar, measured from visualViewport (§7.2). */
     --chrome-inset: 0px;
     --thickness: 1.6px;
@@ -213,7 +215,8 @@
     left: 0;
     right: 0;
     top: var(--hinge-y);
-    height: var(--pane-h);
+    /* Shorter than its pane, so the hairlines under it are on screen. */
+    height: calc(var(--pane-h) - var(--stack-peek));
     transform-origin: 50% 0%; /* the hinge */
     transform-style: preserve-3d;
     -webkit-backface-visibility: hidden;
@@ -230,7 +233,7 @@
     bottom: 0;
     left: var(--hinge-x);
     right: auto;
-    width: var(--pane-w);
+    width: calc(var(--pane-w) - var(--stack-peek));
     height: 100%;
     transform-origin: 0% 50%;
   }
@@ -338,7 +341,18 @@
     outline-offset: -1px;
   }
 
-  [data-appearance="dark"] .mat img {
+  /* Every print in the product, not just the one on the card: the contact
+     sheet and the light table draw the same outline, and an inline style there
+     could never be reached by this override — the thumbnails kept black
+     outlines in dark appearance, which is precisely the "grime along the image
+     edge" §5.2 warns about, only inverted. */
+  .print-outline {
+    outline: 1px solid rgb(0 0 0 / 0.1);
+    outline-offset: -1px;
+  }
+
+  [data-appearance="dark"] .mat img,
+  [data-appearance="dark"] .print-outline {
     outline-color: rgb(255 255 255 / 0.1);
   }
 
@@ -551,6 +565,9 @@
 @supports (animation-timeline: scroll()) {
   .stage[data-path="css"] .card[data-flips="true"] {
     animation: flip linear both;
+    /* Explicit: the `animation` shorthand above resets `animation-duration`,
+       and `auto` is only its initial value under scroll-driven-animations. */
+    animation-duration: auto;
     animation-timeline: scroll(root block);
     animation-range: calc(var(--i) * 100dvh) calc((var(--i) + 1) * 100dvh);
   }

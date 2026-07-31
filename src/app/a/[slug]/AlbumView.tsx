@@ -14,12 +14,15 @@
 import { useEffect, useState } from "react";
 import type { Album } from "@/fixtures/albums";
 import { Flipbook } from "@/components/stage/Flipbook";
+import { FlatPad } from "@/components/stage/FlatPad";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { LightTable } from "@/components/desktop/LightTable";
 import { hinge } from "@/design/tokens";
 
 export function AlbumView({ album }: { album: Album }) {
   const [desktop, setDesktop] = useState(false);
   const [table, setTable] = useState(false);
+  const reduced = useReducedMotion();
 
   useEffect(() => {
     const mq = matchMedia(
@@ -35,6 +38,11 @@ export function AlbumView({ album }: { album: Album }) {
   // animation makes it feel slow (§3.3). There is exactly one owner of the
   // key: Flipbook calls `onBrowse` when it has one, and toggles its own sheet
   // when it doesn't.
+  /* One pad or the other, never both. The reduced-motion tree used to render
+     inside Flipbook, which meant Flipbook's own listeners stayed live
+     underneath it. */
+  if (reduced) return <FlatPad album={album} />;
+
   return (
     <>
       <Flipbook

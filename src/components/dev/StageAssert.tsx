@@ -26,7 +26,9 @@ export function StageAssert() {
       const problems: string[] = [];
       let node = stage.parentElement;
 
-      while (node && node !== document.documentElement) {
+      // Includes <html>: it is an ancestor like any other, and a filter
+      // there flattens the context just as effectively.
+      while (node) {
         const s = getComputedStyle(node);
         const at = describe(node);
 

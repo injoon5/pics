@@ -29,7 +29,13 @@ import {
 import type { Album, Photo } from "@/fixtures/albums";
 import { unlock } from "@/design/sound";
 import { restoreSoundPreference, useUi } from "@/lib/store";
-import { card as cardTokens, shadow as shadowTokens, sheen as sheenTokens } from "@/design/tokens";
+import {
+  card as cardTokens,
+  flip as flipTokens,
+  shadow as shadowTokens,
+  sheen as sheenTokens,
+} from "@/design/tokens";
+import { easeFlip } from "@/lib/easing";
 import { shadowTint } from "@/lib/color";
 import { exifLine, frameNumber } from "@/lib/format";
 import { sources, fallbackSrc } from "@/lib/image";
@@ -78,7 +84,13 @@ function CardImpl({
   // imperceptible as lag and very perceptible as weight.
   const uLag = useSpring(u, { visualDuration: shadowTokens.lagSeconds, bounce: 0 });
 
-  const rotation = useTransform(u, [0, 1], [0, -180]);
+  /* The ease has to be applied here too. `easeFlip` was living only inside
+     `flipKeyframes()`, so the CSS path was eased and the Motion fallback was
+     linear — 54° apart at u = 0.5, which is the difference between a card
+     nearly landed and a card standing on edge. Both paths now read the same
+     four control points out of `tokens.ts`, which is what makes them
+     diffable on device (phase 3). */
+  const rotation = useTransform(u, (v) => flipTokens.degrees * easeFlip(v));
   const transform = useMotionTemplate`${
     axis === "y" ? "rotateX" : "rotateY"
   }(${rotation}deg)`;
@@ -202,16 +214,25 @@ function CardImpl({
             {frameNumber(index)}
           </div>
 
-          <motion.div
+          {/* The band is deliberately twice the card's width so its own edges
+              never show — which means it has to be clipped to the card, and
+              `.face--front` has no `overflow: hidden` (a clip with a radius
+              inside `preserve-3d` breaks backface-visibility on iOS). So the
+              clip goes on a wrapper, whose children are flat anyway. */}
+          <div
             aria-hidden
-            className="sheen pointer-events-none absolute -inset-y-1/4 -left-1/2 w-[200%]"
-            style={{
-              opacity: sheenOpacity,
-              transform: sheenTransform,
-              background:
-                "linear-gradient(105deg, transparent 30%, oklch(1 0 0 / 0.85) 50%, transparent 70%)",
-            }}
-          />
+            className="pointer-events-none absolute inset-0 overflow-hidden rounded-card"
+          >
+            <motion.div
+              className="sheen absolute -inset-y-1/4 -left-1/2 w-[200%]"
+              style={{
+                opacity: sheenOpacity,
+                transform: sheenTransform,
+                background:
+                  "linear-gradient(105deg, transparent 30%, oklch(1 0 0 / 0.85) 50%, transparent 70%)",
+              }}
+            />
+          </div>
           <div className="grain" aria-hidden />
         </div>
       )}

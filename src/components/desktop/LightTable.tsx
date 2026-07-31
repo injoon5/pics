@@ -31,6 +31,12 @@ export function LightTable({
   const photos = album.photos;
   const [raised, setRaised] = useState<number | null>(null);
   const [idle, setIdle] = useState(false);
+  /* Whether the current selection came from a key. Keyboard navigation repeats
+     hundreds of times, and animating it makes it feel slow (§3.3) — so the
+     transition is switched off for the change a key caused and back on for the
+     one a click caused. Held in a ref because it must be readable during the
+     same render that applies it. */
+  const fromKey = useRef(false);
 
   /* The cursor loupe. Interpolated through a spring rather than tracking the
      pointer directly: direct tracking has no momentum and reads as artificial
@@ -46,10 +52,21 @@ export function LightTable({
      warms over a long ramp. */
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
+    // Guarded rather than unconditional: `setIdle(false)` on every pointer
+    // sample is a state write per move event, which is exactly the pattern
+    // §0.3 exists to prevent — React bailing out on an unchanged value is not
+    // the same as never asking.
+    let isIdle = false;
     const poke = () => {
-      setIdle(false);
+      if (isIdle) {
+        isIdle = false;
+        setIdle(false);
+      }
       clearTimeout(timer);
-      timer = setTimeout(() => setIdle(true), desktop.lightTableIdleMs);
+      timer = setTimeout(() => {
+        isIdle = true;
+        setIdle(true);
+      }, desktop.lightTableIdleMs);
     };
     poke();
     window.addEventListener("pointermove", poke);
@@ -67,6 +84,7 @@ export function LightTable({
       if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
       e.preventDefault();
       // No animation. Arrow keys jump.
+      fromKey.current = true;
       setRaised((r) => {
         const next = (r ?? -1) + (e.key === "ArrowRight" ? 1 : -1);
         return Math.max(0, Math.min(photos.length - 1, next));
@@ -105,20 +123,30 @@ export function LightTable({
             type="button"
             aria-label={photo.alt}
             aria-pressed={isRaised}
-            onClick={() => setRaised(isRaised ? null : i)}
-            className="press-lg absolute block bg-surface p-[6px]"
+            onClick={() => {
+              fromKey.current = false;
+              setRaised(isRaised ? null : i);
+            }}
+            className="absolute block bg-surface p-[6px]"
             style={{
+              // The print stays where it was scattered; raising it is a
+              // translate to the centre, not a change of `left`/`top`.
+              // Animating those two forced a layout and a paint on every frame
+              // for both the outgoing and incoming print, which is the one
+              // thing §12 forbids outright — and with key repeat running ~8×
+              // faster than the transition, nothing ever arrived at centre.
               left: `${s.left}%`,
               top: `${s.top}%`,
               width: "22vw",
               maxWidth: 380,
               borderRadius: "var(--radius-card)",
               transform: isRaised
-                ? `translate(-50%, -50%) rotate(0deg) scale(1.35)`
+                ? `translate(${(50 - s.left).toFixed(2)}vw, ${(50 - s.top).toFixed(2)}vh) translate(-50%, -50%) scale(1.35)`
                 : `rotate(${s.angle.toFixed(2)}deg)`,
-              ...(isRaised ? { left: "50%", top: "50%" } : null),
               zIndex: isRaised ? 40 : 10 + i,
-              transition: `transform ${durations.sheetToggle}ms ${cssEase.drawer}, left ${durations.sheetToggle}ms ${cssEase.drawer}, top ${durations.sheetToggle}ms ${cssEase.drawer}`,
+              transition: fromKey.current
+                ? "none"
+                : `transform ${durations.sheetToggle}ms ${cssEase.drawer}, box-shadow ${durations.sheetToggle}ms ${cssEase.drawer}`,
               boxShadow: isRaised
                 ? "0 18px 44px oklch(0 0 0 / 0.22)"
                 : "0 2px 8px oklch(0 0 0 / 0.14)",
@@ -131,8 +159,7 @@ export function LightTable({
               <img
                 src={fallbackSrc(photo)}
                 alt=""
-                className="block w-full rounded-[2px]"
-                style={{ outline: "1px solid rgb(0 0 0 / 0.1)", outlineOffset: -1 }}
+                className="print-outline block w-full rounded-image"
                 decoding="async"
                 loading="lazy"
               />

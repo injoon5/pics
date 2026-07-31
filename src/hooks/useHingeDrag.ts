@@ -13,7 +13,7 @@
  * wall. Past 88px it lets go.
  */
 
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { durations, gesture, cssEase } from "@/design/tokens";
 import { project, rubberband, VelocityTracker } from "@/lib/gesture";
 
@@ -26,14 +26,21 @@ export function useHingeDrag(onOpen: () => void) {
     tracker: new VelocityTracker(),
   });
 
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
   const reset = useCallback((el: HTMLElement | null) => {
     if (!el) return;
     el.style.transition = `transform ${durations.sheetToggle}ms ${cssEase.drawer}`;
     el.style.transform = "";
-    window.setTimeout(() => {
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
       el.style.transition = "";
     }, durations.sheetToggle);
   }, []);
+
+  // Clearing the class off a detached node is harmless; leaving a pending
+  // timer that fires after unmount is not.
+  useEffect(() => () => clearTimeout(timer.current), []);
 
   const onPointerDown = useCallback((e: React.PointerEvent<HTMLElement>) => {
     // A second finger mid-drag would jump the hinge (§3.4).

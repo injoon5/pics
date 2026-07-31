@@ -15,7 +15,7 @@ export type Axis = "x" | "y";
 /** The horizontal (mobile) / vertical (desktop) split. §1, §4.3 */
 export const hinge = {
   /** Fraction of the frozen viewport height at which the pad is hinged. */
-  ratio: 0.5,
+  ratio: 0.5 as number,
   /** Hit area for the grabber and the sheet handle. §7.5 */
   hitSize: 40,
   /** Desktop book mode kicks in at this width with a fine pointer. §4.5 */
@@ -47,7 +47,10 @@ export const flip = {
   ease: [0.34, 0.02, 0.18, 1] as [number, number, number, number],
   /** Sampled stops emitted into the scroll-timeline @keyframes. §4.1 */
   keyframeStops: 8,
-  /** Degrees of rotation for a complete flip. */
+  /** Degrees of rotation for a complete flip. Positive: the card is hinged
+   *  at its top edge, so a positive rotateX lifts its bottom edge toward the
+   *  viewer and over — a page turning off a pad. A negative one swings it
+   *  behind the screen plane, where the print it is landing on occludes it. */
   degrees: 180,
 } as const;
 
@@ -63,6 +66,11 @@ export const stack = {
   jitterRotation: 0.7,
   /** The staggered restack after a contact-sheet select. §8 */
   restackStagger: 18,
+  /** How much shorter the cards are than their pane, so the pile's edges have
+   *  somewhere to show. Without it the hairlines are drawn past the screen
+   *  edge and the whole stack is an invisible no-op — you cannot feel how much
+   *  album is left, which is the one thing §5.3 asks the pile to do. */
+  peek: 20,
 } as const;
 
 /** Two shadows, both lagging the rotation. §5.4 */
@@ -105,6 +113,10 @@ export const blur = {
   bottomExtent: 0.13,
   /** Anything above this is expensive, especially in Safari. §3.3 */
   maskingBlurMax: 20,
+  /** Chroma ceiling for the band tint. Looser than the shadow's 0.012 because
+   *  this wash sits directly under the photograph's own edge and has to match
+   *  it; tight enough that it can never read as a second accent (§3.1). */
+  tintChromaMax: 0.05,
 } as const;
 
 /** §3.4. The three formulas are in lib/gesture.ts; these are their constants. */

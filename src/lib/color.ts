@@ -6,7 +6,7 @@
  * shadow. Neither is ever a text colour, a fill, or a border.
  */
 
-import { appearance, shadow } from "@/design/tokens";
+import { appearance, blur, shadow } from "@/design/tokens";
 
 export type Oklch = { L: number; C: number; h: number };
 
@@ -43,7 +43,7 @@ export function shadowTint(hue: number, alpha: number, dark: boolean): string {
  */
 export function blurTint(band: string, alpha: number): string {
   const c = parseOklch(band);
-  return formatOklch({ ...c, C: Math.min(c.C, 0.05) }, alpha);
+  return formatOklch({ ...c, C: Math.min(c.C, blur.tintChromaMax) }, alpha);
 }
 
 /**

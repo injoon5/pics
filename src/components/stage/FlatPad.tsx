@@ -14,7 +14,7 @@
  * in the bottom pane, upside-down, which explains nothing to anyone.
  */
 
-import { useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Album } from "@/fixtures/albums";
 import { CaptionBack, IntroBack } from "./Card";
 import { FilmCounter } from "./FilmCounter";
@@ -27,26 +27,55 @@ import { durations } from "@/design/tokens";
 import { useUi } from "@/lib/store";
 import { unlock } from "@/design/sound";
 
-export function FlatPad({
-  album,
-  index,
-  cards,
-  onSelect,
-}: {
-  album: Album;
-  index: number;
-  cards: number;
-  onSelect: (i: number) => void;
-}) {
+export function FlatPad({ album }: { album: Album }) {
   const photos = album.photos;
+  const cards = photos.length + 1;
   const chrome = useIOSChrome();
   useStableViewport();
+
+  /* Its own scroll tracking, rather than props from Flipbook. Rendering this
+     *inside* Flipbook left both trees mounted: two `visualViewport` rAF loops,
+     two effects writing the same custom properties, two appearance veils, and
+     two `keydown` listeners — so on desktop with reduced motion, `G` opened
+     the light table and the contact sheet at the same time. */
+  const [index, setIndex] = useState(0);
+  useEffect(() => {
+    let frame = 0;
+    const read = () => {
+      frame = 0;
+      const h = window.innerHeight || 1;
+      const next = Math.max(0, Math.min(cards - 1, Math.round(window.scrollY / h)));
+      setIndex((prev) => (prev === next ? prev : next));
+    };
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(read);
+    };
+    read();
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+    return () => {
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, [cards]);
+
+  const onSelect = useCallback(
+    (i: number) => {
+      // No animation: reduced motion means the jump *is* the transition.
+      window.scrollTo({ top: (i + 1) * (window.innerHeight || 1), behavior: "instant" });
+      setSheetOpenRef.current?.(false);
+    },
+    [],
+  );
 
   const current = index > 0 ? photos[Math.min(index, photos.length) - 1] : undefined;
   useAppearance(current?.palette);
 
   const sheetOpen = useUi((s) => s.sheetOpen);
   const setSheetOpen = useUi((s) => s.setSheetOpen);
+  const setSheetOpenRef = useRef(setSheetOpen);
+  setSheetOpenRef.current = setSheetOpen;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

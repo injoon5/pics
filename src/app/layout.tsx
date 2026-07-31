@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { flipKeyframes } from "@/lib/easing";
 import { DevHarness } from "@/components/dev/DevHarness";
+import { oklchToHex, parseOklch } from "@/lib/color";
 
 export const metadata: Metadata = {
   title: "Flipbook",
@@ -25,8 +26,10 @@ export const viewport: Viewport = {
   // and the browser's own text size setting is respected.
   maximumScale: 1,
   viewportFit: "cover",
+  // The listing's ground. Derived from `--color-paper-50` rather than written
+  // as a hex literal, which would silently drift from the token it copies.
   // Overwritten per settled photo by useAppearance (§6.2).
-  themeColor: "#f8f7f4",
+  themeColor: oklchToHex(parseOklch("oklch(0.972 0.004 86)")),
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

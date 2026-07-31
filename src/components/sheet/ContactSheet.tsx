@@ -319,7 +319,7 @@ function SheetBody({
               aria-label={photo.alt}
               aria-current={i === index}
               onFocus={() => setFocused(i)}
-              className="sheet-thumb relative block aspect-square min-h-[40px] w-full bg-surface p-[3px]"
+              className="sheet-thumb press relative block aspect-square min-h-[40px] w-full bg-surface p-[3px]"
               style={
                 {
                   borderRadius: "var(--radius-card)",
@@ -349,8 +349,7 @@ function SheetBody({
                 <img
                   src={fallbackSrc(photo)}
                   alt=""
-                  className="h-full w-full rounded-[2px] object-cover"
-                  style={{ outline: "1px solid rgb(0 0 0 / 0.1)", outlineOffset: -1 }}
+                  className="print-outline h-full w-full rounded-image object-cover"
                   decoding="async"
                   loading="lazy"
                 />

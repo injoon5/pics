@@ -22,7 +22,7 @@
  *    layer above them and never scroll; they only rotate.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   useMotionValue,
   useMotionValueEvent,
@@ -37,18 +37,17 @@ import { Stack } from "./Stack";
 import { FilmCounter } from "./FilmCounter";
 import { ProgressiveBlur } from "@/components/chrome/ProgressiveBlur";
 import { ContactSheet } from "@/components/sheet/ContactSheet";
-import { FlatPad } from "./FlatPad";
 import { useStableViewport } from "@/hooks/useStableViewport";
 import { useIOSChrome } from "@/hooks/useIOSChrome";
 import { useAppearance } from "@/hooks/useAppearance";
 import { useWheelNormalise } from "@/hooks/useWheelNormalise";
 import { useHingeDrag } from "@/hooks/useHingeDrag";
-import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { play, unlock, velocityFromRelease } from "@/design/sound";
 import { useUi } from "@/lib/store";
 import { warmDecode } from "@/lib/image";
 import { clamp } from "@/lib/gesture";
 import { appearanceFor } from "@/lib/color";
+import { easeFlip } from "@/lib/easing";
 import { blur, budget, hinge as hingeTokens } from "@/design/tokens";
 import { useDials } from "@/design/dials";
 
@@ -67,13 +66,9 @@ export function Flipbook({
    *  empty sleeve holding the final caption and the colophon (§1). */
   const cards = photos.length + 1;
 
-  const reduced = useReducedMotion();
   const [axis, setAxis] = useState<"x" | "y">("y");
   const [cssPath, setCssPath] = useState(false);
   const [index, setIndex] = useState(0);
-
-  const chrome = useIOSChrome();
-  useStableViewport();
 
   const p = useDials("Hinge", {
     ratio: [hingeTokens.ratio, 0.25, 0.75],
@@ -81,16 +76,21 @@ export function Flipbook({
     bottomBlur: [blur.bottomExtent, 0, 0.6],
   });
 
-  useEffect(() => {
-    document.documentElement.style.setProperty("--hinge-ratio", String(p.ratio));
-  }, [p.ratio]);
+  const chrome = useIOSChrome();
+  // The dial has to reach the hinge itself, not just the blur bands.
+  useStableViewport(p.ratio);
 
-  // Published so `.bottom-rail` can keep the caption's last line clear of the
-  // bottom blur band (see globals.css).
+  /* The blur band heights are published as CSS so they follow `--pane-h`,
+     which `useStableViewport` re-freezes on rotation. Computing them in JS
+     from `window.innerHeight` meant reading a ref during render — zero on the
+     first paint, and stale after a rotation until something else happened to
+     re-render. `--blur-bottom` additionally keeps `.bottom-rail` clear of its
+     own band, so the caption's last line is never blurred. */
   useEffect(() => {
-    const h = Math.round((window.innerHeight * (1 - p.ratio) || 0) * p.bottomBlur);
-    document.documentElement.style.setProperty("--blur-bottom", `${h}px`);
-  }, [p.ratio, p.bottomBlur]);
+    const root = document.documentElement.style;
+    root.setProperty("--blur-top", `calc(var(--hinge-y) * ${p.topBlur})`);
+    root.setProperty("--blur-bottom", `calc(var(--pane-h) * ${p.bottomBlur})`);
+  }, [p.topBlur, p.bottomBlur]);
 
   /* ── path selection ────────────────────────────────────────────────────
      The primary flip is a native CSS scroll-driven animation: Safari 26
@@ -123,25 +123,62 @@ export function Flipbook({
   const velocity = useVelocity(scrollY);
   const g = useMotionValue(0);
 
+  /* This one is deliberately NOT frozen, and it is the opposite of §7.1's
+     hinge. The sections are `100dvh`, and `100dvh` *is* `window.innerHeight`
+     at any given moment — so the section boundaries move as Safari's URL bar
+     collapses. If `g` divided by a height frozen at mount, the two would
+     diverge and the error would compound with every card: 60px of collapsed
+     chrome on a 734px viewport puts snap point 12 at g = 12.98, which is the
+     wrong card, the wrong caption, and a mount window that no longer contains
+     the print lying face-up.
+
+     So: the hinge is frozen (it must never move), and this is live (it must
+     always match the sections). Both are §7.1. */
   const viewport = useRef(1);
   useEffect(() => {
+    let frame = 0;
     const measure = () => {
+      frame = 0;
       viewport.current = window.innerHeight || 1;
     };
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(measure);
+    };
+
     measure();
-    window.addEventListener("orientationchange", measure);
-    return () => window.removeEventListener("orientationchange", measure);
+    window.addEventListener("resize", schedule);
+    window.visualViewport?.addEventListener("resize", schedule);
+    return () => {
+      window.removeEventListener("resize", schedule);
+      window.visualViewport?.removeEventListener("resize", schedule);
+      if (frame) cancelAnimationFrame(frame);
+    };
   }, []);
 
   useMotionValueEvent(scrollY, "change", (y) => {
     g.set(clamp(y / viewport.current, 0, cards - 1));
   });
 
-  /* ── the mounted window ────────────────────────────────────────────────
-     Three cards: the one before (top of the flipped pile), the one flipping,
-     and the one behind it. Everything below is the hairline stack, which is
-     one node (§5.3). React re-renders once per index crossed and at no other
-     time during a scroll (§0.3). */
+  /* Seed from the current scroll before first paint. Motion schedules its
+     first scroll measurement on the next frame, so a reload or a back
+     navigation that restores scroll would otherwise show the pad fully
+     unflipped for a frame or two and then jump. */
+  useLayoutEffect(() => {
+    viewport.current = window.innerHeight || 1;
+    g.set(clamp(window.scrollY / viewport.current, 0, cards - 1));
+    const seeded = Math.round(g.get());
+    settled.current = seeded;
+    lastSounded.current = seeded;
+    setIndex(seeded);
+  }, [g, cards]);
+
+  /* `index` is the semantic position — how many flips have landed — and it is
+     what the caption, the counter, the appearance and the theme colour read.
+     `Math.round` is right for that: the appearance should change when the new
+     print has visually taken the top pane, not when the last pixel of the old
+     one leaves.
+
+     It is NOT the right centre for the mount window. See `window4` below. */
   const settled = useRef(0);
   useMotionValueEvent(g, "change", (v) => {
     const next = Math.round(v);
@@ -232,6 +269,20 @@ export function Flipbook({
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+      /* Space on the sound toggle, or on a contact-sheet frame, must activate
+         the control — not get preventDefault()ed into a page flip. And while
+         the sheet is open the pad is not what the arrow keys are steering. */
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.isContentEditable ||
+          /^(BUTTON|INPUT|TEXTAREA|SELECT|A)$/.test(target.tagName))
+      ) {
+        if (e.key !== "Escape") return;
+      }
+      if (sheetOpen && e.key !== "Escape" && e.key !== "g" && e.key !== "G") return;
+
       const at = Math.round(g.get());
 
       switch (e.key) {
@@ -299,20 +350,28 @@ export function Flipbook({
 
   const hingeDrag = useHingeDrag(openBrowse);
 
-  const window3 = useMemo(
-    () => [index - 1, index, index + 1].filter((c) => c >= 0 && c < cards),
+  /* The cards that can be on screen are `floor(g)−1` (lying face-up above the
+     hinge), `floor(g)` (flipping) and `floor(g)+1` (the next back). With
+     `index = round(g)`, `floor(g)` is either `index−1` or `index`, so the
+     union of what might be visible is `index−2 … index+1`.
+
+     §12 budgets three mounted cards, and three is what a window centred on the
+     *flipping* card would need. This one is centred on the semantic index, so
+     it needs four — the alternative is a second piece of state tracking
+     `floor(g)`, which changes at integers where `index` changes at halves, and
+     that costs two renders per card instead of one.
+
+     Getting this wrong is not subtle: with a three-card window, every flip
+     unmounts the previous print exactly halfway through, and on the Motion
+     path — where the incoming card is edge-on at u = 0.5 — the entire top half
+     of the screen goes to bare paper. */
+  const window4 = useMemo(
+    () =>
+      [index - 2, index - 1, index, index + 1].filter((c) => c >= 0 && c < cards),
     [index, cards],
   );
 
-  if (reduced) {
-    return <FlatPad album={album} index={index} cards={cards} onSelect={onSelect} />;
-  }
-
   const remaining = cards - index;
-  const paneBlurTop = Math.round((viewport.current * p.ratio || 0) * p.topBlur);
-  const paneBlurBottom = Math.round(
-    (viewport.current * (1 - p.ratio) || 0) * p.bottomBlur,
-  );
 
   return (
     <>
@@ -332,15 +391,21 @@ export function Flipbook({
         {/* The flipped pile, above the hinge: mirrored hairlines under the
             print you're looking at. */}
         <Stack
-          remaining={index + 1}
+          remaining={index}
           total={cards}
           direction="up"
           axis={axis}
-          className="pointer-events-none absolute inset-x-0 top-0"
-          style={{ height: "var(--hinge-y)" }}
+          className="pointer-events-none absolute inset-x-0"
+          style={{
+            // The flipped pile's own footprint: the same height as a card,
+            // with its top edge where a landed card's top edge is. Its
+            // hairlines run upward from there into the gap the peek leaves.
+            top: "calc(var(--hinge-y) - var(--pane-h) + var(--stack-peek))",
+            height: "calc(var(--pane-h) - var(--stack-peek))",
+          }}
         />
 
-        {window3.map((c) => (
+        {window4.map((c) => (
           <CardAt
             key={c}
             c={c}
@@ -360,7 +425,11 @@ export function Flipbook({
           direction="down"
           axis={axis}
           className="pointer-events-none absolute inset-x-0"
-          style={{ top: "var(--hinge-y)", height: "var(--pane-h)", zIndex: -1 }}
+          style={{
+            top: "var(--hinge-y)",
+            height: "calc(var(--pane-h) - var(--stack-peek))",
+            zIndex: -1,
+          }}
         />
       </div>
 
@@ -371,13 +440,13 @@ export function Flipbook({
             edge="top"
             band={current.palette.topBand}
             thumbhash={current.thumbhash}
-            height={paneBlurTop}
+            height="var(--blur-top)"
           />
           <ProgressiveBlur
             edge="bottom"
             band={current.palette.bottomBand}
             thumbhash={current.thumbhash}
-            height={paneBlurBottom}
+            height="var(--blur-bottom)"
           />
         </>
       )}
@@ -448,9 +517,14 @@ function CardAt({
 
   // The window can remount a card at any rotation, so seed the handoff once
   // rather than waiting for the next scroll event to correct it.
+  /* The card crosses the hinge plane when it passes vertical — which, on the
+     eased curve, is u ≈ 0.317, not 0.5. Stepping at 0.5 left the incoming
+     print drawn *behind* the one it is landing on for 18% of every flip. */
+  const crossed = (v: number) => easeFlip(v) >= 0.5;
+
   useEffect(() => {
     const el = ref.current;
-    if (el) el.style.zIndex = u.get() < 0.5 ? String(50 - c) : String(50 + c);
+    if (el) el.style.zIndex = crossed(u.get()) ? String(50 + c) : String(50 - c);
   }, [c, u]);
 
   /* §4.4 — at u = 0.5 the card crosses the hinge plane and moves from "top of
@@ -458,7 +532,7 @@ function CardAt({
      write the style directly rather than going through React. */
   useMotionValueEvent(u, "change", (v) => {
     const el = ref.current;
-    const target = v < 0.5 ? String(50 - c) : String(50 + c);
+    const target = crossed(v) ? String(50 + c) : String(50 - c);
     if (el && el.style.zIndex !== target) el.style.zIndex = target;
 
     /* §7.4 — `will-change` on the Motion fallback path only, on exactly the

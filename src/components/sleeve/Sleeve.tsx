@@ -99,7 +99,7 @@ export function Sleeve({ album }: { album: Album }) {
                   <img
                     src={fallbackSrc(photo)}
                     alt=""
-                    className="h-full w-full rounded-[2px] object-cover"
+                    className="print-outline h-full w-full rounded-image object-cover"
                     decoding="async"
                     loading="lazy"
                   />
@@ -126,7 +126,7 @@ export function Sleeve({ album }: { album: Album }) {
           }}
         >
           <h2
-            className="m-0 text-[17px] text-accent"
+            className="album-title m-0 text-[17px] text-accent"
             lang={album.lang}
             style={{
               fontVariationSettings: `"opsz" 14, "wght" ${typeTokens.sleeveLabel.wght}, "wdth" ${typeTokens.sleeveLabel.wdth}`,
@@ -138,10 +138,17 @@ export function Sleeve({ album }: { album: Album }) {
             {album.title}
           </h2>
 
-          {/* The lab stamp: the same blue, faded, the way a rubber stamp
-              fades. Not a second accent — the same one, worn. */}
+          {/* The lab stamp: the same blue, worn. Not a second accent — the
+              same one. It must be the `accent` *role* and not the scale token
+              underneath it, or it stays at the light-mode value while the
+              sleeve title right above it correctly brightens, and the two
+              blues on one wallet visibly diverge.
+
+              The wear comes from the condensed width and the small size, not
+              from opacity: a real rubber stamp fades unevenly, and a flat 70%
+              alpha over `surface-sunk` drops this to about 2.6:1. */}
           <p
-            className="m-0 mt-2 text-[11px] tabular-nums text-china-700 opacity-70"
+            className="m-0 mt-2 text-[11px] tabular-nums text-accent"
             style={{
               fontVariationSettings: `"opsz" 14, "wght" ${typeTokens.labStamp.wght}, "wdth" ${typeTokens.labStamp.wdth}`,
             }}

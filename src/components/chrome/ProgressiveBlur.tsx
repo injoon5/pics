@@ -29,7 +29,8 @@ export type ProgressiveBlurProps = {
   band: string;
   /** Base64 thumbhash, for the no-backdrop-filter fallback. */
   thumbhash: string;
-  height: number;
+  /** A CSS length — it tracks `--pane-h`, which is re-frozen on rotation. */
+  height: string;
 };
 
 export function ProgressiveBlur({ edge, band, thumbhash, height }: ProgressiveBlurProps) {
@@ -47,7 +48,10 @@ export function ProgressiveBlur({ edge, band, thumbhash, height }: ProgressiveBl
     return (
       <div
         aria-hidden
-        className="pointer-events-none absolute left-0 right-0"
+        // Fixed, not absolute, for the same reason `.progressive-blur` is: the
+        // document is N viewports tall, so `bottom: 0` on an absolutely
+        // positioned element lands at the bottom of the *album*.
+        className="pointer-events-none fixed left-0 right-0 z-30"
         style={{
           ...style,
           backgroundImage: `url(${dataUrl(thumbhash)})`,

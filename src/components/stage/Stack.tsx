@@ -40,9 +40,14 @@ function StackImpl({
   const layers = Array.from({ length: visible }, (_, k) => {
     const offset = (k + 1) * tokens.layerGap * sign;
     const alpha = Math.max(0, tokens.hairlineAlpha - k * tokens.hairlineAlphaStep);
+    // `color-mix` against the token rather than the token's literal value:
+    // `--color-separator` moves in dark appearance, and an inlined
+    // `oklch(0.822 …)` would leave the pile lit for a light room while
+    // everything around it went dark.
+    const tint = `color-mix(in oklab, var(--color-separator) ${(alpha * 100).toFixed(1)}%, transparent)`;
     return axis === "y"
-      ? `0 ${offset}px 0 -0.5px oklch(0.822 0.007 86 / ${alpha.toFixed(3)})`
-      : `${offset}px 0 0 -0.5px oklch(0.822 0.007 86 / ${alpha.toFixed(3)})`;
+      ? `0 ${offset}px 0 -0.5px ${tint}`
+      : `${offset}px 0 0 -0.5px ${tint}`;
   });
 
   // Beyond seven the eye stops counting, so the rest of the album becomes one

@@ -74,7 +74,7 @@ export function flipKeyframes(stops = flip.keyframeStops): string {
   const lines: string[] = [];
   for (let i = 0; i <= stops; i++) {
     const p = i / stops;
-    const deg = -flip.degrees * easeFlip(p);
+    const deg = flip.degrees * easeFlip(p);
     lines.push(
       `  ${round(p * 100)}% { transform: rotateX(${round(deg)}deg); }`,
     );
