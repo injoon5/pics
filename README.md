@@ -86,6 +86,18 @@ a fixture.
 - **The shared-layout flights** (sleeve→stack, stack→sheet) are routed and
   prefetched but not yet `layoutId`-linked.
 - **Pinch-to-open** on the stack. The hinge drag and the grabber are in.
+- **The stack sag at the ends of an album.** `overscroll-behavior-y: none`
+  suppresses the native rubber band and nothing reimplements it, so
+  `springs.sag` is currently unused.
+- **Velocity handed to a settle spring.** Release velocity drives the flip
+  sound and the sheet-open threshold, but the sheet's own settle is a fixed
+  280ms transition rather than a spring taking the release velocity, so
+  `springs.flipSettle` is unused too.
+- **`project()` on the pad.** `scroll-snap-stop: always` makes the browser the
+  snapper there and forbids advancing more than one card per fling, so §3.4's
+  projection and §4.2's snap-stop are in direct conflict; the build takes
+  §4.2 and uses the projection on the hinge drag, which is the one threshold
+  the app decides itself.
 
 **And the caveat that matters most:** none of this has been on a real iPhone.
 URL-bar behaviour, 3D rasterisation, `backdrop-filter` cost and gesture feel
