@@ -1,169 +1,110 @@
 "use client";
 
 /**
- * §9 — an album is a paper photo wallet.
+ * One album in the listing.
  *
- * Prints peeking out of the top at seeded angles, a wax-pencil label, a lab
- * stamp block, and a thickness that scales with the photo count. That last one
- * is the point of the whole component: big trips look big, and you know which
- * album is which before you read a word.
+ * This was a paper photo wallet — a flap, prints fanned at seeded angles, a
+ * lab stamp in faded blue. It leaned hard on a metaphor the rest of the
+ * product no longer uses, and it made the one screen that has to be *scannable*
+ * into the most decorated screen in the build.
  *
- * The flap, the prints and the stamp are all hand-built. There is no library
- * for "photo wallet", and if there were, using it would be the wrong call.
+ * What it is now: the album's cover photograph at a generous size, its title
+ * under it, and the count and dates in one quiet line. The photograph is the
+ * only thing with any colour in it, which is the point — you pick an album by
+ * recognising the picture, not by reading the label.
  */
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import type { Album } from "@/fixtures/albums";
-import { Stack } from "@/components/stage/Stack";
-import { sleeve as tokens, durations, cssEase, type as typeTokens } from "@/design/tokens";
-import { jitter, seeded } from "@/lib/rng";
+import { sleeve as tokens, durations, cssEase } from "@/design/tokens";
 import { stashPrint } from "@/lib/flight";
 import { sources, fallbackSrc } from "@/lib/image";
+import { takenAt } from "@/lib/format";
 
 export function Sleeve({ album }: { album: Album }) {
   const router = useRouter();
   const [pressed, setPressed] = useState(false);
-  const topPrint = useRef<HTMLImageElement>(null);
+  const cover = useRef<HTMLImageElement>(null);
 
-  const tilt = (jitter(album.slug, tokens.tiltDegrees * 2).dx / tokens.tiltDegrees) *
-    tokens.tiltDegrees;
-  const rnd = seeded(`${album.slug}:sleeve`);
+  const first = album.photos[0];
+  const last = album.photos[album.photos.length - 1];
 
-  // Two or three prints, whichever the album can supply.
-  const peeking = album.photos.slice(0, 3);
+  /** "4 photos · July 2025 – July 2026", or a single date when the album
+   *  spans one. Set at normal width — condensed numerals were reading as a
+   *  filing system rather than as a caption. */
+  const span = [
+    `${album.photos.length} photo${album.photos.length === 1 ? "" : "s"}`,
+    dateRange(first.exif.takenAt, last.exif.takenAt, album.lang),
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <Link
       href={`/a/${album.slug}`}
-      // Prefetch the album payload on pointerdown, so the sleeve→stack
-      // transition has nothing to wait for (§9).
+      // Prefetch on pointerdown, so opening has nothing to wait for.
       onPointerDown={() => {
         setPressed(true);
         router.prefetch(`/a/${album.slug}`);
       }}
-      // §9 — the sleeve empties into the hinge. Measured on click rather than
-      // on pointerdown: a press that turns into a scroll should leave nothing
-      // behind, and the stash expires anyway.
-      onClick={() => stashPrint(`album:${album.slug}`, topPrint.current)}
+      onClick={() => stashPrint(`album:${album.slug}`, cover.current)}
       onPointerUp={() => setPressed(false)}
       onPointerCancel={() => setPressed(false)}
       onPointerLeave={() => setPressed(false)}
-      className="sleeve group block focus-visible:outline-none"
-      style={{
-        transform: `rotate(${tilt.toFixed(2)}deg) scale(${pressed ? tokens.pressScale : 1})`,
-        transition: `transform ${durations.press}ms ${cssEase.out}`,
-      }}
-      aria-label={`${album.title}, ${album.photos.length} frames`}
+      className="sleeve group block rounded-[16px] focus-visible:outline-none"
+      aria-label={`${album.title}, ${album.photos.length} photos`}
     >
-      <div className="relative">
-        {/* Thickness. One node, N hairlines — the same stack that sits under
-            the hinge, so a thick album feels like the same object here and
-            there (§5.3). */}
-        <Stack
-          remaining={album.photos.length + 1}
-          total={album.photos.length + 1}
-          className="absolute inset-x-2 bottom-0 h-8"
-        />
+      <div
+        className="relative w-full overflow-hidden rounded-[16px] bg-surface-sunk"
+        style={{
+          aspectRatio: "4 / 3",
+          // Large surfaces get less scale than buttons — the same absolute
+          // displacement reads as exaggerated on a big element.
+          transform: `scale(${pressed ? tokens.pressScale : 1})`,
+          transition: `transform ${durations.press}ms ${cssEase.out}`,
+        }}
+      >
+        <picture>
+          {sources(first).map((s) => (
+            <source key={s.type} type={s.type} srcSet={s.srcSet} sizes="(min-width: 720px) 640px, 92vw" />
+          ))}
+          <img
+            ref={cover}
+            src={fallbackSrc(first)}
+            alt=""
+            className="print-cover"
+            decoding="async"
+            loading="lazy"
+          />
+        </picture>
 
-        {/* The prints, peeking. The layer is deliberately shorter than the
-            prints it contains: the flap that follows in normal flow covers the
-            rest, so the top one shows ~62% of its height and the others are
-            progressively more buried. A print is 76% of the sleeve's width and
-            4:3, so 62% of its height is 0.62 × 0.76 × 3/4 = 35.3% of the
-            sleeve's width — expressed as padding, because percentage padding
-            resolves against width and that is the only way to tie this height
-            to the print's aspect ratio without measuring. */}
-        <div className="relative mx-2" style={{ paddingBottom: "35.3%" }}>
-          {peeking.map((photo, i) => {
-            // Fanned around the centre rather than independently jittered: a
-            // wallet's prints splay because they were pushed in as a group,
-            // and three independently random angles read as three mistakes.
-            const spread = (i - (peeking.length - 1) / 2) * tokens.printAngleDegrees;
-            const angle = spread * 1.7 + (rnd() - 0.5) * tokens.printAngleDegrees;
-            const depth = i / Math.max(peeking.length - 1, 1);
-            return (
-              <div
-                key={photo.id}
-                className="absolute left-1/2 top-0 w-[76%] bg-surface p-[3px]"
-                style={{
-                  borderRadius: "var(--radius-card)",
-                  transform: `translateX(-50%) rotate(${angle.toFixed(2)}deg) translateY(${
-                    (pressed ? -tokens.printRise : 0) + depth * 5
-                  }px)`,
-                  transition: `transform ${durations.flapLift}ms ${cssEase.drawer}`,
-                  zIndex: peeking.length - i,
-                  aspectRatio: "4 / 3",
-                  boxShadow: "0 1px 2px oklch(0 0 0 / 0.16)",
-                }}
-              >
-                <picture>
-                  {sources(photo).map((s) => (
-                    <source key={s.type} type={s.type} srcSet={s.srcSet} sizes="40vw" />
-                  ))}
-                  <img
-                    ref={i === 0 ? topPrint : undefined}
-                    src={fallbackSrc(photo)}
-                    alt=""
-                    className="print-outline h-full w-full rounded-image object-cover"
-                    decoding="async"
-                    loading="lazy"
-                  />
-                </picture>
-              </div>
-            );
-          })}
-        </div>
+        {/* How many are behind this one. A count, not a simulated stack. */}
+        {album.photos.length > 1 && (
+          <span className="absolute right-3 top-3 rounded-full bg-[oklch(0_0_0/0.42)] px-2.5 py-1 text-[12px] tabular-nums text-white backdrop-blur-sm">
+            {album.photos.length}
+          </span>
+        )}
+      </div>
 
-        {/* The flap. Lifts ~6° on press — hinged at its own bottom edge, which
-            is where a wallet flap is actually hinged. It sits above the prints
-            in the stacking order, which is what buries them. */}
-        <div
-          className="relative rounded-b-[6px] bg-surface-sunk px-4 pb-4 pt-5"
-          style={{
-            // Above the prints, which is what buries them. Inline rather than a
-            // utility because the prints carry inline z-indices too, and two
-            // sources for one stacking order is how these get out of step.
-            zIndex: 30,
-            transformOrigin: "50% 100%",
-            transform: `perspective(700px) rotateX(${pressed ? tokens.flapLiftDegrees : 0}deg)`,
-            transition: `transform ${durations.flapLift}ms ${cssEase.drawer}`,
-            boxShadow: "inset 0 1px 0 oklch(1 0 0 / 0.5), 0 1px 3px oklch(0 0 0 / 0.1)",
-          }}
+      <div className="px-1 pt-3">
+        <h2
+          className="album-title m-0 text-[19px] text-text-primary"
+          lang={album.lang}
         >
-          <h2
-            className="album-title m-0 text-[17px] text-accent"
-            lang={album.lang}
-            style={{
-              fontVariationSettings: `"opsz" 14, "wght" ${typeTokens.sleeveLabel.wght}, "wdth" ${typeTokens.sleeveLabel.wdth}`,
-              // A hand-written label is never quite on the baseline.
-              transform: `rotate(${tokens.labelRotation}deg)`,
-              transformOrigin: "0 50%",
-            }}
-          >
-            {album.title}
-          </h2>
-
-          {/* The lab stamp: the same blue, worn. Not a second accent — the
-              same one. It must be the `accent` *role* and not the scale token
-              underneath it, or it stays at the light-mode value while the
-              sleeve title right above it correctly brightens, and the two
-              blues on one wallet visibly diverge.
-
-              The wear comes from the condensed width and the small size, not
-              from opacity: a real rubber stamp fades unevenly, and a flat 70%
-              alpha over `surface-sunk` drops this to about 2.6:1. */}
-          <p
-            className="m-0 mt-2 text-[11px] tabular-nums text-accent"
-            style={{
-              fontVariationSettings: `"opsz" 14, "wght" ${typeTokens.labStamp.wght}, "wdth" ${typeTokens.labStamp.wdth}`,
-            }}
-          >
-            {album.stamp}
-          </p>
-        </div>
+          {album.title}
+        </h2>
+        <p className="m-0 mt-1 text-[14px] tabular-nums text-text-secondary">{span}</p>
       </div>
     </Link>
   );
+}
+
+function dateRange(from: number | undefined, to: number | undefined, lang: string) {
+  const fmt = (ms: number) =>
+    new Intl.DateTimeFormat(lang, { year: "numeric", month: "long" }).format(new Date(ms));
+  if (!from) return takenAt(to, lang) ?? "";
+  if (!to || fmt(from) === fmt(to)) return fmt(from);
+  return `${fmt(from)} – ${fmt(to)}`;
 }

@@ -24,22 +24,8 @@ export const hinge = {
 
 /** The card itself. §5.1, §5.2, §3.5 */
 export const card = {
-  /** Paper thickness in px. Above ~3 it reads as cardstock, not photo paper. */
-  thickness: 1.6,
-  /** Concentric radii: card → mat → image. §3.5 */
-  radius: 4,
-  imageRadius: 2,
-  /** The mat the image is inset into. Wider at the bottom, as prints are. */
-  matTop: 10,
-  matSide: 10,
-  matBottom: 22,
-  /** Tiling paper-fibre texture. §5.2 */
-  grainOpacity: 0.035,
-  /** Inner cut-edge line and the outer half-pixel specular. §5.2 */
-  edgeInnerAlpha: 0.055,
-  edgeOuterAlpha: 0.6,
-  /** Image outline — pure black / pure white only, never tinted. §5.2 */
-  imageOutlineAlpha: 0.1,
+  /** Corner radius of a page. */
+  radius: 0,
 } as const;
 
 /** The flip curve. Deliberately slow off the mark — paper has to break away. §3.3A */
@@ -66,11 +52,11 @@ export const stack = {
   jitterRotation: 0.7,
   /** The staggered restack after a contact-sheet select. §8 */
   restackStagger: 18,
-  /** How much shorter the cards are than their pane, so the pile's edges have
-   *  somewhere to show. Without it the hairlines are drawn past the screen
-   *  edge and the whole stack is an invisible no-op — you cannot feel how much
-   *  album is left, which is the one thing §5.3 asks the pile to do. */
-  peek: 20,
+  /** Zero: the pages are flush with the hinge. The hairline pile that used to
+   *  peek out below the top card went with the paper look, and the film
+   *  counter already answers "how much is left" without pretending to be a
+   *  stack of stock. */
+  peek: 0,
 } as const;
 
 /** Two shadows, both lagging the rotation. §5.4 */
@@ -265,13 +251,19 @@ export const sound = {
 
 /** §3.2. opsz / wght / wdth per role. */
 export const type = {
+  /* One width, everywhere. The condensed settings were a lab-print conceit —
+   * EXIF at wdth 88, frame numbers at 82, the sleeve label at 92 — and with
+   * five different widths on screen at once the interface read as compressed
+   * rather than as precise. Tabular numerals still do the real work of
+   * stopping the EXIF row jittering on every flip; that is a `tnum` feature,
+   * not a width. */
   albumTitle: { opsz: 32, wght: 500, wdth: 100 },
   body: { opsz: 14, wght: 400, wdth: 100 },
-  exif: { opsz: 14, wght: 450, wdth: 88 },
-  frameNumber: { opsz: 14, wght: 600, wdth: 82 },
-  intro: { opsz: 32, wght: 380, wdth: 96 },
-  sleeveLabel: { opsz: 14, wght: 500, wdth: 92 },
-  labStamp: { opsz: 14, wght: 500, wdth: 84 },
+  exif: { opsz: 14, wght: 450, wdth: 100 },
+  frameNumber: { opsz: 14, wght: 550, wdth: 100 },
+  intro: { opsz: 32, wght: 400, wdth: 100 },
+  sleeveLabel: { opsz: 14, wght: 500, wdth: 100 },
+  labStamp: { opsz: 14, wght: 450, wdth: 100 },
 } as const;
 
 /** §12 */

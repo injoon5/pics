@@ -1,54 +1,80 @@
 "use client";
 
 /**
- * §7.1 — the hinge must not move.
+ * The pad's geometry: it must fit the window, and the hinge must not twitch.
  *
- * `100dvh` changes as Safari's URL bar collapses, so a hinge at `50dvh` shifts
- * several points mid-scroll, on every scroll. That is not a subtle defect: the
- * hinge is the one fixed line the whole metaphor hangs off, and a hinge that
- * drifts turns a physical object back into a web page.
+ * Those two pull in opposite directions. `100dvh` changes as Safari's URL bar
+ * collapses, so a hinge at `50dvh` shifts several points mid-scroll on every
+ * scroll — the hinge is the one fixed line the whole thing hangs off, and one
+ * that drifts turns an object back into a web page. But freezing outright is
+ * worse: resize an iPad window in Stage Manager, or drag a desktop window, and
+ * the pad keeps the size it had when it loaded and no longer fits the screen.
  *
- * So the stage is laid out against a height measured once and re-measured only
- * on orientation change. The scroller still uses `100dvh`, because snapping
- * must match the *visible* area — the two are deliberately different.
+ * So the rule is narrower than "freeze": re-measure on any resize *except* the
+ * one Safari's chrome causes. That one is identifiable — the width does not
+ * change and the height moves by less than the chrome's own height. Everything
+ * else is a real resize and the pad follows it.
  */
 
 import { useEffect } from "react";
 import { hinge } from "@/design/tokens";
 
+/** Safari's bars are ~56pt expanded and ~44pt collapsed; a little headroom on
+ *  top of that covers the toolbar too. A genuine window resize is almost never
+ *  this small, and if it is, being off by a few points is invisible. */
+const CHROME_HEIGHT_TOLERANCE = 132;
+
 export function useStableViewport(ratio = hinge.ratio) {
   useEffect(() => {
     const root = document.documentElement;
+    let frozenW = 0;
+    let frozenH = 0;
 
     const freeze = () => {
       const h = window.innerHeight;
+      const w = window.innerWidth;
+      frozenW = w;
+      frozenH = h;
+
       root.style.setProperty("--hinge-y", `${Math.round(h * ratio)}px`);
       root.style.setProperty("--pane-h", `${Math.round(h * (1 - ratio))}px`);
       root.style.setProperty("--stable-h", `${h}px`);
 
-      // Book mode hinges on the vertical, so it measures against width. Width
-      // does not drift the way height does on iOS, but freezing both here
-      // keeps one function answerable for the pad's geometry.
-      const w = window.innerWidth;
+      // Book mode hinges on the vertical, so it measures against width.
       root.style.setProperty("--hinge-x", `${Math.round(w * ratio)}px`);
       root.style.setProperty("--pane-w", `${Math.round(w * (1 - ratio))}px`);
     };
 
     freeze();
 
-    // Orientation change only. Listening to `resize` would reintroduce exactly
-    // the drift this exists to prevent — on iOS the URL bar collapsing *is* a
-    // resize. Rotation must re-freeze without resetting scroll, which it does:
-    // we only write custom properties, never touch the scroller.
+    const maybeRefreeze = () => {
+      const chromeOnly =
+        window.innerWidth === frozenW &&
+        Math.abs(window.innerHeight - frozenH) <= CHROME_HEIGHT_TOLERANCE;
+      if (!chromeOnly) freeze();
+    };
+
+    let frame = 0;
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(() => {
+        frame = 0;
+        maybeRefreeze();
+      });
+    };
+
+    // The metrics are stale in the same tick as an orientation change on iOS,
+    // and that one is always a real resize, so it re-freezes unconditionally.
     const onOrientation = () => {
-      // The metrics are stale in the same tick as the event on iOS.
       requestAnimationFrame(() => requestAnimationFrame(freeze));
     };
 
+    window.addEventListener("resize", schedule);
     window.addEventListener("orientationchange", onOrientation);
     screen.orientation?.addEventListener("change", onOrientation);
 
     return () => {
+      if (frame) cancelAnimationFrame(frame);
+      window.removeEventListener("resize", schedule);
       window.removeEventListener("orientationchange", onOrientation);
       screen.orientation?.removeEventListener("change", onOrientation);
     };

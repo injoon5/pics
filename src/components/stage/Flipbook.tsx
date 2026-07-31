@@ -24,6 +24,8 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
+  motion,
+  useMotionTemplate,
   useMotionValue,
   useMotionValueEvent,
   useScroll,
@@ -33,7 +35,6 @@ import {
 } from "motion/react";
 import type { Album } from "@/fixtures/albums";
 import { Card, CaptionBack, IntroBack, ColophonBack } from "./Card";
-import { Stack } from "./Stack";
 import { FilmCounter } from "./FilmCounter";
 import { ProgressiveBlur } from "@/components/chrome/ProgressiveBlur";
 import { ContactSheet } from "@/components/sheet/ContactSheet";
@@ -441,22 +442,13 @@ export function Flipbook({
         data-axis={axis}
         data-path={cssPath ? "css" : "motion"}
       >
-        {/* The flipped pile, above the hinge: mirrored hairlines under the
-            print you're looking at. */}
-        <Stack
-          remaining={index}
-          total={cards}
-          direction="up"
-          axis={axis}
-          className="pointer-events-none absolute inset-x-0"
-          style={{
-            // The flipped pile's own footprint: the same height as a card,
-            // with its top edge where a landed card's top edge is. Its
-            // hairlines run upward from there into the gap the peek leaves.
-            top: "calc(var(--hinge-y) - var(--pane-h) + var(--stack-peek))",
-            height: "calc(var(--pane-h) - var(--stack-peek))",
-          }}
-        />
+
+        {/* The turning page's shadow, falling on the flipped pile beneath it.
+            A gradient anchored at the hinge and reaching up the top pane,
+            strongest as the page passes over — this is the cue that says one
+            sheet is above another rather than two rectangles sharing a plane.
+            Opacity only, and it sits under every card. */}
+        <PageShadow g={g} index={index} axis={axis} />
 
         {window4.map((c) => (
           <CardAt
@@ -471,19 +463,6 @@ export function Flipbook({
           />
         ))}
 
-        {/* The unflipped pile below. One node, N box-shadows. */}
-        <Stack
-          remaining={remaining}
-          total={cards}
-          direction="down"
-          axis={axis}
-          className="pointer-events-none absolute inset-x-0"
-          style={{
-            top: "var(--hinge-y)",
-            height: "calc(var(--pane-h) - var(--stack-peek))",
-            zIndex: -1,
-          }}
-        />
       </div>
 
       {/* Siblings of the stage, never children (§5.6). */}
@@ -504,10 +483,17 @@ export function Flipbook({
         </>
       )}
 
-      {/* §5.3 — the counter on the right edge. Below the hinge, not above it:
-          the print's own frame number sits in the mat's bottom margin, and two
-          numbers on the same line read as one broken label. */}
-      <div className="fixed right-4 z-40" style={{ top: "calc(var(--hinge-y) + 12px)" }}>
+      {/* The counter sits with the caption, aligned to its measure, rather
+          than pinned to the window edge — on a wide screen the edge is a long
+          way from anything it relates to. */}
+      <div
+        className="fixed z-40"
+        style={
+          axis === "y"
+            ? { top: "calc(var(--hinge-y) + 16px)", right: 24 }
+            : { top: 24, left: "calc(var(--hinge-x) + 24px)" }
+        }
+      >
         <FilmCounter index={Math.max(index - 1, 0)} total={photos.length} />
       </div>
 
@@ -626,6 +612,49 @@ function CardAt({
       dark={subject ? appearanceFor(subject.palette.meanL) === "dark" : false}
       total={photos.length}
       priority={c === 0 || c === 1}
+    />
+  );
+}
+
+function PageShadow({
+  g,
+  index,
+  axis,
+}: {
+  g: MotionValue<number>;
+  index: number;
+  axis: "x" | "y";
+}) {
+  // Only the card actually turning throws this, and only while it is turning.
+  const u = useTransform(g, (v) => clamp(v - Math.floor(v), 0, 1));
+  const opacity = useTransform(u, [0, 0.2, 0.55, 0.9, 1], [0, 0.5, 0.72, 0.24, 0]);
+  const reach = useTransform(u, [0, 0.5, 1], [26, 82, 40]);
+  const shadow = useMotionTemplate`linear-gradient(to top, oklch(0 0 0 / 0.5), transparent ${reach}%)`;
+
+  if (index < 1) return null;
+
+  return (
+    <motion.div
+      aria-hidden
+      className="pointer-events-none absolute"
+      style={{
+        opacity,
+        backgroundImage: shadow,
+        zIndex: 40,
+        ...(axis === "y"
+          ? {
+              left: 0,
+              right: 0,
+              top: "calc(var(--hinge-y) - var(--pane-h) + var(--stack-peek))",
+              height: "calc(var(--pane-h) - var(--stack-peek))",
+            }
+          : {
+              top: 0,
+              bottom: 0,
+              left: "calc(var(--hinge-x) - var(--pane-w) + var(--stack-peek))",
+              width: "calc(var(--pane-w) - var(--stack-peek))",
+            }),
+      }}
     />
   );
 }

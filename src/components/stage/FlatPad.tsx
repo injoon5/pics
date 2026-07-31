@@ -130,7 +130,6 @@ export function FlatPad({ album }: { album: Album }) {
           className="face face--back absolute inset-x-0"
           style={{ top: "var(--hinge-y)", height: "var(--pane-h)" }}
         >
-          <div className="grain" aria-hidden />
           {current ? (
             <CaptionBack photo={current} lang={album.lang} revealExtra={chrome.collapsed} />
           ) : (

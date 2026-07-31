@@ -32,13 +32,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { animate, motion, useMotionTemplate, useMotionValue } from "motion/react";
 import type { Photo } from "@/fixtures/albums";
-import { Sprockets } from "./Sprockets";
 import { ChinagraphMark } from "./ChinagraphMark";
 import { Loupe, type LoupeHandle } from "./Loupe";
 import { durations, sheet as tokens, gesture, cssEase, springs } from "@/design/tokens";
 import { rubberband, shouldDismiss, VelocityTracker } from "@/lib/gesture";
 import { jitter } from "@/lib/rng";
-import { frameNumber } from "@/lib/format";
 import { sources, fallbackSrc } from "@/lib/image";
 import { play, unlock } from "@/design/sound";
 import { flyStashedTo, stashPrint } from "@/lib/flight";
@@ -318,15 +316,13 @@ function SheetBody({
 
   return (
     <motion.div
-      className="sheet-frame relative min-h-full px-8 pb-16 pt-10"
+      className="sheet-frame relative min-h-full px-4 pb-16 pt-6"
       style={{ transform: sheetTransform, touchAction: "none" }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
     >
-      <Sprockets side="left" />
-      <Sprockets side="right" />
 
       <div
         ref={grid}
@@ -347,13 +343,13 @@ function SheetBody({
               aria-label={photo.alt}
               aria-current={i === index}
               onFocus={() => setFocused(i)}
-              className="sheet-thumb press relative block aspect-square min-h-[40px] w-full bg-surface p-[3px]"
+              className="sheet-thumb press relative block aspect-square min-h-[40px] w-full overflow-hidden"
               style={
                 {
-                  borderRadius: "var(--radius-card)",
-                  // The same seed the stack and the sleeve use, so a given
-                  // print sits at the same angle everywhere (§5.3).
-                  "--angle": `${seed.dr}deg`,
+                  borderRadius: "10px",
+                  // No seeded tilt: a scattered grid was the paper conceit,
+                  // and without it a straight grid is simply easier to read.
+                  "--angle": "0deg",
                   // Never from zero. Nothing in the real world appears from
                   // nothing (§3.3).
                   "--enter-scale": enterScale,
@@ -377,15 +373,11 @@ function SheetBody({
                 <img
                   src={fallbackSrc(photo)}
                   alt=""
-                  className="print-outline h-full w-full rounded-image object-cover"
+                  className="print-cover rounded-[10px]"
                   decoding="async"
                   loading="lazy"
                 />
               </picture>
-
-              <span className="frame-number absolute -bottom-[15px] left-0 text-[10px] text-text-tertiary">
-                {frameNumber(i)}
-              </span>
 
               <ChinagraphMark id={photo.id} drawn={i === index} />
             </button>

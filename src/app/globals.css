@@ -69,8 +69,8 @@
     "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", sans-serif;
 
   /* §3.5 Radii — concentric. card → mat → image. */
-  --radius-card: 4px;
-  --radius-image: 2px;
+  --radius-card: 0px;
+  --radius-image: 0px;
 }
 
 /* Dark is tuned, not mirrored: `surface-sunk` is hand-set rather than taken
@@ -109,7 +109,7 @@
     --hinge-x: 50vw;
     --pane-w: 50vw;
     /* Room for the pile's edges to peek past the top card (§5.3). */
-    --stack-peek: 20px;
+    --stack-peek: 0px;
     --sag: 0px;
     /* Safari's floating bottom bar, measured from visualViewport (§7.2). */
     --chrome-inset: 0px;
@@ -141,6 +141,14 @@
     overscroll-behavior-y: none;
     background: var(--color-surface);
     scroll-snap-type: y mandatory;
+    /* The scroll exists to turn pages, not to move the page — every pixel of
+       the pad is `position: fixed`. A visible scrollbar is the one thing that
+       still says "document", so it goes. */
+    scrollbar-width: none;
+  }
+
+  html::-webkit-scrollbar {
+    display: none;
   }
 
   body {
@@ -263,13 +271,7 @@
     transform-origin: 50% 50%;
     -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
-    border-radius: var(--radius-card);
     background: var(--color-surface);
-    /* §5.2 — the inner cut line, and the half-pixel outer specular that reads
-       as the cut edge of the paper catching light. */
-    box-shadow:
-      inset 0 0 0 1px oklch(0 0 0 / 0.055),
-      0 0 0 0.5px oklch(1 0 0 / 0.6);
     /* Deliberately no `overflow: hidden` here. A clip with a radius inside a
        `preserve-3d` parent forces the face into an intermediate surface on
        iOS, which breaks `backface-visibility` and shows the print through the
@@ -291,88 +293,48 @@
     transform: rotateY(180deg) translateZ(calc(var(--thickness) / 2));
   }
 
-  /* §5.1 — three planes, not six. Left/right rims are invisible at this
-     viewing angle, so the bottom edge is the only quad worth drawing. */
-  .rim {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: var(--thickness);
-    transform-origin: 50% 100%;
-    transform: rotateX(-90deg);
-    background: linear-gradient(
-      to bottom,
-      oklch(0.99 0.003 86),
-      oklch(0.88 0.006 86) 55%,
-      oklch(0.8 0.008 86)
-    );
+  /* A photograph pressed against the edge of a large screen looks like a
+     mistake; on a phone, full-bleed is the whole point. So the inset only
+     exists where there is room to give. */
+  .stage[data-axis="x"] .mat {
+    padding: clamp(24px, 4vw, 64px);
   }
 
-  .stage[data-axis="x"] .rim {
-    left: auto;
-    top: 0;
-    bottom: 0;
-    right: 0;
-    width: var(--thickness);
-    height: auto;
-    transform-origin: 100% 50%;
-    transform: rotateY(90deg);
+  /* Book mode has no phone chrome to hug, so the caption sits in the middle
+     of its page rather than on the floor of it. It keeps the bottom clearance:
+     the blur band is still there, and text under it is unreadable. */
+  .stage[data-axis="x"] .bottom-rail {
+    justify-content: center;
   }
 
-  /* §5.2 — one 512×512 tile of paper fibre at ~3.5%, multiplied. The same file
-     everywhere, and the highest-leverage detail in the build. */
-  .grain {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background-image: url("/grain.webp");
-    background-size: 256px 256px;
-    background-repeat: repeat;
-    mix-blend-mode: multiply;
-    opacity: var(--grain-opacity, 0.035);
-    border-radius: inherit;
-  }
+  /* The photograph fills its pane. No mat, no border, no outline: a frame
+     around a photograph is a decision the photograph did not ask for, and at
+     this size it reads as chrome rather than as a print.
 
-  [data-appearance="dark"] .grain {
-    mix-blend-mode: screen;
-    opacity: calc(var(--grain-opacity, 0.035) * 0.7);
-  }
-
-  /* §5.2 — the mat. A print's border is wider at the bottom; this single
-     decision says "print" louder than any texture. */
+     `contain`, not `cover` — a wide window must not crop the picture. The pane
+     letterboxes instead, on the same ground the rest of the surface uses, so
+     the empty margin reads as the room and not as a mount. */
   .mat {
     position: absolute;
     inset: 0;
-    padding: var(--mat-top) var(--mat-side) var(--mat-bottom);
     display: flex;
   }
 
-  .mat img {
+  .mat img,
+  .print-fit {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  /* Thumbnails are the one place cropping is right: a contact sheet is a grid
+     of equal cells, and a ragged one is unreadable. */
+  .print-cover {
     display: block;
     width: 100%;
     height: 100%;
     object-fit: cover;
-    border-radius: var(--radius-image);
-    /* Pure black / pure white only. A tinted neutral picks up the mat colour
-       and reads as grime along the image edge. */
-    outline: 1px solid rgb(0 0 0 / 0.1);
-    outline-offset: -1px;
-  }
-
-  /* Every print in the product, not just the one on the card: the contact
-     sheet and the light table draw the same outline, and an inline style there
-     could never be reached by this override — the thumbnails kept black
-     outlines in dark appearance, which is precisely the "grime along the image
-     edge" §5.2 warns about, only inverted. */
-  .print-outline {
-    outline: 1px solid rgb(0 0 0 / 0.1);
-    outline-offset: -1px;
-  }
-
-  [data-appearance="dark"] .mat img,
-  [data-appearance="dark"] .print-outline {
-    outline-color: rgb(255 255 255 / 0.1);
   }
 
   /* §6.3 — progressive blur. Not one blur: a stack of layers, each with a
@@ -450,6 +412,11 @@
      like it works because nothing visibly breaks until you scroll on a phone.
      Use `--rail-pad` for the base inset instead. */
   .bottom-rail {
+    /* Owned here, not by a `justify-end` utility on the element: utilities beat
+       components, so the utility silently wins over the book-mode override
+       below — the same layer trap that has already cost this build the chrome
+       inset and the browse button. */
+    justify-content: flex-end;
     /* The bottom blur field is an edge dissolve for the *paper* — the card's
        bottom edge and its grain going soft against the screen edge. It must
        never sit over the caption: blurring your own text is not depth, it is
@@ -482,14 +449,14 @@
      itself, which is the mat, and therefore the frame number.
      Verify with `node scripts/contrast.mjs` after any token change. */
   .exif {
-    font-variation-settings: "opsz" 14, "wght" 450, "wdth" 88;
-    letter-spacing: 0.02em;
+    font-variation-settings: "opsz" 14, "wght" 450, "wdth" 100;
+    letter-spacing: 0.01em;
     color: var(--color-text-secondary);
   }
 
   .frame-number,
   .film-counter {
-    font-variation-settings: "opsz" 14, "wght" 600, "wdth" 82;
+    font-variation-settings: "opsz" 14, "wght" 550, "wdth" 100;
   }
 
   .caption {
@@ -504,21 +471,6 @@
     text-wrap: balance;
   }
 
-  /* §5.5 — pressed into the paper, not printed on it. */
-  .letterpress {
-    font-variation-settings: "opsz" 32, "wght" 380, "wdth" 96;
-    color: color-mix(in oklab, var(--color-text-primary) 88%, transparent);
-    text-shadow:
-      0 1px 0 rgb(255 255 255 / 0.7),
-      0 -0.5px 0 rgb(0 0 0 / 0.1);
-    text-wrap: pretty;
-  }
-
-  [data-appearance="dark"] .letterpress {
-    text-shadow:
-      0 1px 0 rgb(0 0 0 / 0.5),
-      0 -0.5px 0 rgb(255 255 255 / 0.08);
-  }
 }
 
 @layer utilities {

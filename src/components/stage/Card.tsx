@@ -3,10 +3,10 @@
 /**
  * One card of the pad.
  *
- * Three planes, not six (§5.1): the back, the front pre-rotated about its own
- * centre, and a single quad for the bottom rim. Left and right rims are
- * invisible at this viewing angle and a full 3D box is six quads that iOS will
- * not thank you for.
+ * Two planes: the back, and the front pre-rotated about its own centre. There
+ * is no rim and no paper grain — the pad is not pretending to be a physical
+ * object made of stock any more, it is a photograph and the text that belongs
+ * to it, hinged.
  *
  * The card's transform origin is the hinge edge; the faces' origins are their
  * own centres. Those two must differ, or the print lands upside-down in the
@@ -30,16 +30,14 @@ import type { Album, Photo } from "@/fixtures/albums";
 import { unlock } from "@/design/sound";
 import { restoreSoundPreference, useUi } from "@/lib/store";
 import {
-  card as cardTokens,
   flip as flipTokens,
   shadow as shadowTokens,
   sheen as sheenTokens,
 } from "@/design/tokens";
 import { easeFlip } from "@/lib/easing";
 import { shadowTint } from "@/lib/color";
-import { exifLine, frameNumber } from "@/lib/format";
+import { exifLine } from "@/lib/format";
 import { sources, fallbackSrc } from "@/lib/image";
-import { jitter } from "@/lib/rng";
 
 export type CardProps = {
   /** Zero-based card index. Card c's front is photo c; its back carries the
@@ -100,12 +98,19 @@ function CardImpl({
   // for it to touch.
   const contactOpacity = useTransform(uLag, [0, shadowTokens.contact.deadAt], [1, 0]);
 
-  // The cast shadow: wide and soft, thrown opposite the flip direction,
-  // strongest as the card stands up.
-  const castOpacity = useTransform(uLag, [0, 0.5, 1], [0, 1, 0.15]);
-  const castShift = useTransform(uLag, [0, 0.5, 1], [0, shadowTokens.cast.offsetMax, 6]);
-  const castScale = useTransform(uLag, [0, 0.5, 1], [0.9, 1.14, 1]);
-  const castTransform = useMotionTemplate`translate3d(0, ${castShift}px, 0) scale(${castScale})`;
+  /* Two lighting cues, and between them they are what makes this read as a
+     page rather than a rotating rectangle.
+
+     `shade` is the turning page's own surface going dark as it swings toward
+     edge-on: a sheet lit from the front reflects almost nothing back at you
+     when it is perpendicular. It is strongest around the crossing and gone at
+     both ends, which is also exactly when the face is most foreshortened, so
+     it costs nothing to read.
+
+     `castOnPile` is the shadow the turning page throws onto the page it is
+     landing on. That one is drawn by the stage, not here — a shadow belongs to
+     the surface receiving it — but its strength comes from the same value. */
+  const shade = useTransform(u, [0, 0.28, 0.5, 0.78, 1], [0, 0.2, 0.3, 0.12, 0]);
 
   // §5.5 — a light band swept across the face, peaking as the card passes
   // through vertical. Off entirely under reduced motion (see globals.css).
@@ -116,8 +121,6 @@ function CardImpl({
   );
   const sheenShift = useTransform(u, [0.2, 0.8], [-140, 140]);
   const sheenTransform = useMotionTemplate`translate3d(${sheenShift}%, 0, 0)`;
-
-  const seed = photo ? jitter(photo.id) : { dx: 0, dr: 0, n: 0 };
 
   return (
     <motion.div
@@ -133,9 +136,6 @@ function CardImpl({
         // hardware accelerated (§4.1).
         ...(cssPath || !flips ? null : { transform }),
         ["--i" as string]: index,
-        ["--mat-top" as string]: `${cardTokens.matTop}px`,
-        ["--mat-side" as string]: `${cardTokens.matSide}px`,
-        ["--mat-bottom" as string]: `${cardTokens.matBottom}px`,
         // Deliberately no zIndex here: it is stepped imperatively at the
         // hinge crossing, and a React-owned value would stomp it on the next
         // window render (§4.4).
@@ -158,33 +158,16 @@ function CardImpl({
           )}`,
         }}
       />
-      <motion.div
-        aria-hidden
-        className="absolute inset-0 -z-10 rounded-card"
-        style={{
-          opacity: castOpacity,
-          transform: castTransform,
-          boxShadow: `0 8px ${shadowTokens.cast.blurMax}px ${shadowTint(
-            photo?.palette.shadowHue ?? 86,
-            shadowTokens.cast.alpha,
-            dark,
-          )}`,
-        }}
-      />
-
       {/* ── back: what you read while the card is still on the pile ───────── */}
       <div className="face face--back">
-        <div className="grain" aria-hidden />
         {back}
+        <Shade value={shade} hue={photo?.palette.shadowHue ?? 86} dark={dark} />
       </div>
 
       {/* ── front: the print ──────────────────────────────────────────────── */}
       {photo && (
         <div className="face face--front">
-          <div
-            className="mat"
-            style={{ transform: `translateX(${seed.dx}px) rotate(${seed.dr}deg)` }}
-          >
+          <div className="mat">
             <figure className="relative m-0 h-full w-full">
               <picture>
                 {sources(photo).map((s) => (
@@ -203,16 +186,6 @@ function CardImpl({
             </figure>
           </div>
 
-          {/* §5.2 — the frame number in the mat's bottom margin, which is
-              why prints have a wider border there. Just the number: the film
-              counter carries the "of N" and repeating it reads as a caption
-              rather than as a lab mark. */}
-          <div
-            className="frame-number pointer-events-none absolute right-[10px] text-[10px] text-text-tertiary"
-            style={{ bottom: Math.max(cardTokens.matBottom / 2 - 6, 2), lineHeight: 1 }}
-          >
-            {frameNumber(index)}
-          </div>
 
           {/* The band is deliberately twice the card's width so its own edges
               never show — which means it has to be clipped to the card, and
@@ -233,13 +206,44 @@ function CardImpl({
               }}
             />
           </div>
-          <div className="grain" aria-hidden />
+          <Shade value={shade} hue={photo.palette.shadowHue} dark={dark} />
         </div>
       )}
 
-      {/* ── rim: the thickness of the paper, one quad ─────────────────────── */}
-      <div className="rim" aria-hidden />
     </motion.div>
+  );
+}
+
+/**
+ * The surface going dark as it turns away from the light. Opacity only, on a
+ * child of the face — never on `.card`, which would flatten the 3D context.
+ */
+function Shade({
+  value,
+  hue,
+  dark,
+}: {
+  value: MotionValue<number>;
+  hue: number;
+  dark: boolean;
+}) {
+  return (
+    <motion.div
+      aria-hidden
+      className="pointer-events-none absolute inset-0"
+      style={{
+        opacity: value,
+        /* A gradient, not a flat fill: light falls off across a turning page,
+           and an even grey rectangle over the photograph reads as a filter
+           someone left on. Tinted from the photograph at the same chroma
+           ceiling the shadows use. */
+        background: `linear-gradient(to bottom, ${shadowTint(
+          hue,
+          dark ? 0.95 : 1,
+          dark,
+        )}, ${shadowTint(hue, 0.35, dark)})`,
+      }}
+    />
   );
 }
 
@@ -265,7 +269,7 @@ export function CaptionBack({
   revealExtra: boolean;
 }) {
   return (
-    <div className="bottom-rail flex h-full flex-col justify-end gap-3 px-6 pt-8">
+    <div className="bottom-rail flex h-full flex-col gap-3 px-6 pt-8 sm:px-8">
       <CaptionBody photo={photo} lang={lang} revealExtra={revealExtra} />
     </div>
   );
@@ -323,14 +327,14 @@ function CaptionBody({
  */
 export function IntroBack({ album }: { album: Album }) {
   return (
-    <div className="bottom-rail flex h-full flex-col justify-end gap-4 px-6 pt-10">
+    <div className="bottom-rail flex h-full flex-col gap-4 px-6 pt-10 sm:px-8">
       <h1 className="album-title m-0 text-[26px] text-text-primary" lang={album.lang}>
         {album.title}
       </h1>
       {album.subtitle && (
         <p className="exif m-0 text-[12px]">{album.subtitle}</p>
       )}
-      <p className="letterpress m-0 max-w-[34ch] text-[17px]" lang={album.lang}>
+      <p className="caption m-0 max-w-[34ch] text-[17px] text-text-primary" lang={album.lang}>
         {album.intro}
       </p>
     </div>
@@ -358,7 +362,7 @@ export function ColophonBack({
     // Everything on one sheet of paper, so it has to fit on one sheet of
     // paper: this card cannot scroll, and a colophon running off the bottom
     // edge is the one place in the product where the metaphor visibly breaks.
-    <div className="bottom-rail flex h-full flex-col justify-end gap-3 px-6 pt-6">
+    <div className="bottom-rail flex h-full flex-col gap-3 px-6 pt-6 sm:px-8">
       <CaptionBody photo={photo} lang={album.lang} revealExtra={chromeCollapsed} />
       <hr className="m-0 mt-1 border-0 border-t border-separator" />
       <p className="caption m-0 whitespace-pre-line text-[12px] leading-[1.5]" lang={album.lang}>

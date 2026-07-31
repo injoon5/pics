@@ -159,12 +159,11 @@ export function LightTable({
               <img
                 src={fallbackSrc(photo)}
                 alt=""
-                className="print-outline block w-full rounded-image"
+                className="block w-full rounded-[10px]"
                 decoding="async"
                 loading="lazy"
               />
             </picture>
-            <div className="grain" aria-hidden />
           </button>
         );
       })}
@@ -188,7 +187,6 @@ export function LightTable({
               {raisedPhoto.note}
             </p>
           )}
-          <div className="grain" aria-hidden />
         </div>
       )}
 
