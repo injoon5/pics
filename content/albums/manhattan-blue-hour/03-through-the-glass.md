@@ -1,4 +1,5 @@
 ---
+title: Through the Glass
 src: through-the-glass.jpg
 alt: Silhouettes of visitors photographing the Empire State Building through an observation deck window
 order: 3

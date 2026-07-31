@@ -17,6 +17,7 @@ export type PhotoColor = {
 
 export type Photo = {
   slug: string;
+  title: string;
   album: string;
   src: string;
   alt: string;

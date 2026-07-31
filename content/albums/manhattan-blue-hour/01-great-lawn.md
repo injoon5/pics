@@ -1,4 +1,5 @@
 ---
+title: Great Lawn
 src: great-lawn.jpg
 alt: Two trees on the Great Lawn in Central Park under an overcast sky
 order: 1

@@ -1,6 +1,7 @@
 "use client";
 
 import { SoundProvider } from "@web-kits/audio/react";
+import { ensureReady } from "@web-kits/audio";
 import {
   createContext,
   useContext,
@@ -42,6 +43,25 @@ export function AppSoundProvider({ children }: { children: ReactNode }) {
     if (!hydrated) return;
     window.localStorage.setItem(SOUND_PREF_KEY, enabled ? "1" : "0");
   }, [enabled, hydrated]);
+
+  // iOS Safari creates the AudioContext suspended and only lets it resume
+  // inside a user gesture. Unlock it on the first interaction of the session,
+  // otherwise every later sound is silently dropped.
+  useEffect(() => {
+    const events = ["pointerdown", "touchstart", "keydown"] as const;
+
+    function unlock() {
+      void ensureReady().catch(() => {});
+      for (const event of events) window.removeEventListener(event, unlock);
+    }
+
+    for (const event of events) {
+      window.addEventListener(event, unlock, { passive: true });
+    }
+    return () => {
+      for (const event of events) window.removeEventListener(event, unlock);
+    };
+  }, []);
 
   return (
     <SoundSettingsContext.Provider

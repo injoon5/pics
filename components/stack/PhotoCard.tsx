@@ -5,176 +5,135 @@ import Image from "next/image";
 import {
   motion,
   useMotionValueEvent,
-  useReducedMotion,
-  useScroll,
   useTransform,
+  type MotionValue,
 } from "motion/react";
 import type { Album, Photo } from "@/lib/types";
 import { ExifBack } from "./ExifBack";
-import { IntroBack, OutroBack } from "./StackIntro";
+import { IntroBack } from "./StackIntro";
 
-export type CardFront =
-  | { kind: "photo"; photo: Photo }
-  | { kind: "outro" };
-
-export type CardBack =
-  | { kind: "intro" }
-  | { kind: "exif"; photo: Photo }
-  | { kind: "outro" };
+export type CardBack = { kind: "intro" } | { kind: "exif"; photo: Photo };
 
 export type StackTuning = {
-  flipStart: number;
-  flipEnd: number;
-  liftPx: number;
-  peekOffset: number;
-  peekRotate: number;
+  pileOffset: number;
+  pileRotate: number;
   grainPhoto: number;
   grainPaper: number;
 };
 
+/**
+ * One print in the pile. Sits face-down in the bottom half with its top edge on
+ * the divider, then hinges about that edge and swings up into the top half —
+ * revealing the photo on its far face and, beneath it, the next card's back.
+ */
 export function PhotoCard({
-  front,
+  photo,
   back,
   album,
-  nextAlbum,
   index,
-  peekPaperCount,
+  total,
+  progress,
   tuning,
   onFlip,
-  sectionRef,
 }: {
-  front: CardFront;
+  photo: Photo;
   back: CardBack;
   album: Album;
-  nextAlbum: Album | null;
   index: number;
-  peekPaperCount: number;
+  total: number;
+  progress: MotionValue<number>;
   tuning: StackTuning;
   onFlip?: () => void;
-  sectionRef: React.RefObject<HTMLElement | null>;
 }) {
-  const { scrollYProgress } = useScroll({
-    target: sectionRef,
-    offset: ["start start", "end start"],
-  });
+  const rotateX = useTransform(progress, [0, 1], [0, -180], { clamp: true });
 
-  const rotateX = useTransform(
-    scrollYProgress,
-    [tuning.flipStart, tuning.flipEnd],
-    [-180, 0],
-    { clamp: true }
+  // Card 0 sits on top of the face-down pile; once flipped, later cards land on
+  // top of earlier ones. The order inverts as each card passes edge-on.
+  const zIndex = useTransform(rotateX, (deg) =>
+    deg < -90 ? total + index : total - index
   );
-  const prefersReducedMotion = useReducedMotion();
-  const midpoint = (tuning.flipStart + tuning.flipEnd) / 2;
-  const liftAmount = prefersReducedMotion ? 0 : tuning.liftPx;
-  const liftY = useTransform(
-    scrollYProgress,
-    [tuning.flipStart, midpoint, tuning.flipEnd],
-    [0, -liftAmount, 0],
-    { clamp: true }
-  );
-  const edgeOpacity = useTransform(rotateX, [-135, -90, -45], [0, 1, 0]);
-  const shadowBlur = useTransform(rotateX, [-180, -90, 0], [14, 34, 16]);
-  const shadowAlpha = useTransform(rotateX, [-180, -90, 0], [0.14, 0.32, 0.16]);
+
+  // Shadow deepens as the print lifts off the pile and settles again.
+  const shadowBlur = useTransform(rotateX, [0, -90, -180], [10, 30, 14]);
+  const shadowAlpha = useTransform(rotateX, [0, -90, -180], [0.12, 0.3, 0.16]);
   const boxShadow = useTransform([shadowBlur, shadowAlpha], (latest) => {
     const [blur, alpha] = latest as [number, number];
     return `0 ${Math.round(blur / 2)}px ${blur}px rgba(0,0,0,${alpha})`;
   });
 
+  // Paper thickness, only catching light while the card is near edge-on.
+  const edgeOpacity = useTransform(rotateX, [-60, -90, -120], [0, 1, 0]);
+
   const playedRef = useRef(false);
-  useMotionValueEvent(rotateX, "change", (latest) => {
-    const inZone = latest > -100 && latest < -80;
+  useMotionValueEvent(rotateX, "change", (deg) => {
+    const inZone = deg < -80 && deg > -100;
     if (inZone && !playedRef.current) {
       playedRef.current = true;
       onFlip?.();
-    } else if (!inZone && (latest < -120 || latest > -60)) {
+    } else if (!inZone && (deg > -60 || deg < -120)) {
       playedRef.current = false;
     }
   });
 
-  return (
-    <section ref={sectionRef as React.RefObject<HTMLElement>} className="relative h-[190dvh]">
-      <div
-        className="sticky top-0 flex h-dvh items-center justify-center px-6 sm:px-10"
-        style={{ perspective: 1600 }}
-      >
-        {/* decorative peek: paper backs waiting underneath, unflipped */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute aspect-[4/5] w-full max-w-[380px]"
-        >
-          {Array.from({ length: peekPaperCount }).map((_, i) => {
-            const depth = i + 1;
-            const dir = depth % 2 === 0 ? 1 : -1;
-            return (
-              <div
-                key={i}
-                className="hairline grain absolute inset-0 rounded-2xl bg-paper dark:bg-paper-dark"
-                style={{
-                  ["--grain-opacity" as string]: tuning.grainPaper,
-                  transform: `translateY(${depth * tuning.peekOffset}px) rotate(${
-                    dir * tuning.peekRotate * depth
-                  }deg)`,
-                  zIndex: -depth,
-                  opacity: 1 - depth * 0.14,
-                }}
-              />
-            );
-          })}
-        </div>
+  const dir = index % 2 === 0 ? 1 : -1;
+  const depth = Math.min(index, 6);
 
+  return (
+    <motion.div
+      className="absolute inset-x-0 top-1/2 flex h-0 items-start justify-center"
+      style={{ zIndex }}
+    >
+      <div
+        style={{
+          transform: `translateY(${depth * tuning.pileOffset}px) rotate(${
+            dir * tuning.pileRotate * (depth * 0.5 + 1)
+          }deg)`,
+        }}
+        className="aspect-[4/5] w-[var(--card-w)]"
+      >
         <motion.div
-          className="preserve-3d relative aspect-[4/5] w-full max-w-[380px] rounded-2xl"
-          style={{ rotateX, y: liftY, transformOrigin: "50% 50%", boxShadow }}
+          className="preserve-3d relative h-full w-full rounded-2xl"
+          style={{ rotateX, transformOrigin: "50% 0%", boxShadow }}
         >
-          {/* paper-thickness edge, only visible edge-on mid-flip */}
           <motion.div
             aria-hidden
-            className="absolute inset-x-0 top-0 h-full rounded-2xl bg-neutral-300 dark:bg-neutral-700"
+            className="absolute inset-0 rounded-2xl bg-neutral-300 dark:bg-neutral-600"
             style={{ opacity: edgeOpacity, transform: "translateZ(-1px)" }}
           />
 
-          <div className="backface-hidden preserve-3d absolute inset-0 overflow-hidden rounded-2xl">
+          {/* Face-down side: paper, carrying the intro or the previous EXIF. */}
+          <div
+            className="backface-hidden hairline grain absolute inset-0 overflow-hidden rounded-2xl bg-paper dark:bg-paper-dark"
+            style={{ ["--grain-opacity" as string]: tuning.grainPaper }}
+          >
+            {back.kind === "intro" ? (
+              <IntroBack album={album} />
+            ) : (
+              <ExifBack photo={back.photo} compact />
+            )}
+          </div>
+
+          {/* Far side: the photograph, upright once the card has turned over. */}
+          <div
+            className="backface-hidden absolute inset-0 overflow-hidden rounded-2xl"
+            style={{ transform: "rotateX(180deg)" }}
+          >
             <div
               className="image-outline grain relative h-full w-full"
               style={{ ["--grain-opacity" as string]: tuning.grainPhoto }}
             >
-              {front.kind === "photo" ? (
-                <Image
-                  src={front.photo.src}
-                  alt={front.photo.alt}
-                  fill
-                  sizes="(min-width: 640px) 380px, 90vw"
-                  className="object-cover"
-                  priority={index < 2}
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center bg-neutral-900 dark:bg-neutral-100">
-                  <p className="font-display text-lg text-neutral-100 dark:text-neutral-900">
-                    fin.
-                  </p>
-                </div>
-              )}
+              <Image
+                src={photo.src}
+                alt={photo.alt}
+                fill
+                sizes="(min-width: 640px) 300px, 70vw"
+                className="object-cover"
+                priority={index < 2}
+              />
             </div>
-          </div>
-
-          <div
-            className="backface-hidden hairline grain absolute inset-0 overflow-hidden rounded-2xl bg-paper dark:bg-paper-dark"
-            style={{
-              transform: "rotateX(180deg)",
-              ["--grain-opacity" as string]: tuning.grainPaper,
-            }}
-          >
-            {back.kind === "intro" ? (
-              <IntroBack album={album} />
-            ) : back.kind === "exif" ? (
-              <ExifBack photo={back.photo} />
-            ) : (
-              <OutroBack album={album} nextAlbum={nextAlbum} />
-            )}
           </div>
         </motion.div>
       </div>
-    </section>
+    </motion.div>
   );
 }

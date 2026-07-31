@@ -1,4 +1,5 @@
 ---
+title: Top of the Rock
 src: top-of-the-rock.jpg
 alt: The Empire State Building lit at dusk, seen from Top of the Rock
 order: 2

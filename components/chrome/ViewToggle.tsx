@@ -1,6 +1,8 @@
 "use client";
 
 import { motion } from "motion/react";
+import { useSound } from "@web-kits/audio/react";
+import { tapSound } from "@/lib/audio";
 
 export type StackView = "stack" | "grid";
 
@@ -11,6 +13,7 @@ export function ViewToggle({
   view: StackView;
   onChange: (view: StackView) => void;
 }) {
+  const playTap = useSound(tapSound);
   const options: { key: StackView; label: string }[] = [
     { key: "stack", label: "Stack" },
     { key: "grid", label: "Grid" },
@@ -24,7 +27,10 @@ export function ViewToggle({
           <button
             key={opt.key}
             type="button"
-            onClick={() => onChange(opt.key)}
+            onClick={() => {
+              if (opt.key !== view) playTap();
+              onChange(opt.key);
+            }}
             className="active:scale-[0.96] relative flex min-h-10 min-w-[3.5rem] items-center justify-center rounded-full px-3 text-neutral-500 transition-transform duration-150 dark:text-neutral-400"
             aria-pressed={active}
           >

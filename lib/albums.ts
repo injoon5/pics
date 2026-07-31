@@ -50,8 +50,11 @@ function readAlbum(slug: string, meta: PhotoMeta): Album {
       const key = `${slug}/${src}`;
       const photoMeta = meta[key];
 
+      const photoSlug = src.replace(/\.[^.]+$/, "");
+
       return {
-        slug: src.replace(/\.[^.]+$/, ""),
+        slug: photoSlug,
+        title: (doc.data.title as string) ?? photoSlug.replaceAll("-", " "),
         album: slug,
         src: `/photos/${slug}/${src}`,
         alt: (doc.data.alt as string) ?? "",

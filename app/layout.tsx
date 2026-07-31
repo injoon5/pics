@@ -6,8 +6,8 @@ import "dialkit/styles.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "pics",
-  description: "A photo portfolio.",
+  title: "Injoon — Photos",
+  description: "Photographs, mostly of skylines.",
 };
 
 export const viewport: Viewport = {
@@ -26,9 +26,9 @@ const FOUC_SCRIPT = `
     var match = document.cookie.match(/theme=([^;]+)/);
     var saved = match ? match[1] : null;
     var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    if (saved === 'dark' || (!saved && prefersDark)) {
-      document.documentElement.classList.add('dark');
-    }
+    var isDark = saved === 'dark' || (!saved && prefersDark);
+    if (isDark) document.documentElement.classList.add('dark');
+
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (e) {
       if (!document.cookie.match(/theme=/)) {
         document.documentElement.classList.toggle('dark', e.matches);

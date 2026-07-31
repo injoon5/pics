@@ -95,7 +95,10 @@ export function DesktopAlbumView({
 
         {active ? (
           <p className="mt-4 text-sm text-neutral-500">
-            {activeIndex + 1} / {album.photos.length} — {active.slug.replaceAll("-", " ")}
+            <span className="tabular-nums">
+              {activeIndex + 1} / {album.photos.length}
+            </span>{" "}
+            — {active.title}
           </p>
         ) : null}
       </div>

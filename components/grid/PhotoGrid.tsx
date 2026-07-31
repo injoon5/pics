@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import { motion } from "motion/react";
+import { useSound } from "@web-kits/audio/react";
+import { tapSound } from "@/lib/audio";
 import type { Album } from "@/lib/types";
 
 export function PhotoGrid({
@@ -11,16 +13,21 @@ export function PhotoGrid({
   album: Album;
   onSelect: (index: number) => void;
 }) {
+  const playTap = useSound(tapSound);
+
   return (
     <div
       className="mx-auto grid w-full max-w-[640px] grid-cols-2 gap-2.5 px-4 pb-[calc(env(safe-area-inset-bottom)+2rem)]"
-      style={{ paddingTop: "calc(env(safe-area-inset-top) + 4.5rem)" }}
+      style={{ paddingTop: "calc(env(safe-area-inset-top) + 4rem)" }}
     >
       {album.photos.map((photo, i) => (
         <motion.button
           key={photo.slug}
           type="button"
-          onClick={() => onSelect(i)}
+          onClick={() => {
+            playTap();
+            onSelect(i);
+          }}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{
@@ -38,9 +45,7 @@ export function PhotoGrid({
             className="object-cover"
           />
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/50 to-transparent p-2.5">
-            <p className="truncate text-sm text-white">
-              {photo.slug.replaceAll("-", " ")}
-            </p>
+            <p className="truncate text-sm text-white">{photo.title}</p>
           </div>
         </motion.button>
       ))}

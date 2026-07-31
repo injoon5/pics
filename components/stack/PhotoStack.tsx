@@ -1,17 +1,14 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDialKit } from "dialkit";
 import { useSound } from "@web-kits/audio/react";
+import { useMotionValueEvent, useScroll, useTransform } from "motion/react";
 import type { Album } from "@/lib/types";
 import { flipSound } from "@/lib/audio";
-import { PhotoCard, type CardBack, type CardFront } from "./PhotoCard";
-
-type Card = {
-  id: string;
-  front: CardFront;
-  back: CardBack;
-};
+import { PhotoCard, type CardBack } from "./PhotoCard";
+import { OutroPanel } from "./StackIntro";
+import { ExifBack } from "./ExifBack";
 
 export function PhotoStack({
   album,
@@ -22,90 +19,139 @@ export function PhotoStack({
   album: Album;
   nextAlbum: Album | null;
   initialIndex?: number | null;
-  onActiveChange?: (index: number, total: number) => void;
+  onActiveChange?: (index: number) => void;
 }) {
   const tuning = useDialKit("Stack", {
-    flipStart: [0.08, 0, 0.3, 0.01],
-    flipEnd: [0.42, 0.2, 0.7, 0.01],
-    liftPx: [14, 0, 40],
-    peekOffset: [10, 4, 24],
-    peekRotate: [2.5, 0, 8],
+    scrollPerCard: [85, 40, 160, 5],
+    // Vertical room reserved above and below the fold for the floating chrome.
+    chromeGap: [86, 40, 160, 2],
+    maxCardVw: [74, 45, 92, 1],
+    flipSpan: [0.82, 0.4, 1, 0.02],
+    pileOffset: [3, 0, 14, 0.5],
+    pileRotate: [0.9, 0, 5, 0.1],
     grainPhoto: [0.045, 0, 0.15, 0.005],
     grainPaper: [0.14, 0, 0.3, 0.005],
   });
 
   const play = useSound(flipSound);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const photos = album.photos;
+  const count = photos.length;
 
-  const cards = useMemo<Card[]>(() => {
-    const photoCards: Card[] = album.photos.map((photo, i) => ({
-      id: photo.slug,
-      front: { kind: "photo", photo },
-      back:
-        i === 0
-          ? { kind: "intro" }
-          : { kind: "exif", photo: album.photos[i - 1] },
-    }));
-    const last = album.photos[album.photos.length - 1];
-    const outro: Card = {
-      id: "__outro",
-      front: { kind: "outro" },
-      back: last ? { kind: "exif", photo: last } : { kind: "outro" },
-    };
-    return [...photoCards, outro];
-  }, [album.photos]);
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start start", "end end"],
+  });
 
-  const sectionRefs = useMemo<React.RefObject<HTMLElement | null>[]>(
-    () => cards.map(() => ({ current: null })),
-    [cards]
-  );
+  const [active, setActive] = useState(0);
+  useMotionValueEvent(scrollYProgress, "change", (p) => {
+    const idx = Math.max(0, Math.min(Math.floor(p * count), count - 1));
+    setActive((prev) => (prev === idx ? prev : idx));
+  });
 
   useEffect(() => {
+    onActiveChange?.(active);
+  }, [active, onActiveChange]);
+
+  // Entering from the grid: land on that photo's slice of the scroll range.
+  useEffect(() => {
     if (initialIndex == null) return;
-    const el = sectionRefs[initialIndex]?.current;
-    if (el) {
-      const top = el.getBoundingClientRect().top + window.scrollY + 1;
-      window.scrollTo({ top, behavior: "instant" as ScrollBehavior });
-    }
-    // Runs once when this instance mounts (e.g. jumping in from grid view).
+    const el = containerRef.current;
+    if (!el) return;
+    const scrollable = el.offsetHeight - window.innerHeight;
+    // Land where the chosen print has finished turning over, not where its
+    // flip begins — otherwise tapping a photo shows the one before it.
+    const at = (initialIndex + tuning.flipSpan) / Math.max(count, 1);
+    window.scrollTo({
+      top: el.offsetTop + scrollable * Math.min(at, 1),
+      behavior: "instant" as ScrollBehavior,
+    });
+    // Runs once when this instance mounts.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    const total = cards.length;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (!entry.isIntersecting) continue;
-          const idx = sectionRefs.findIndex((r) => r.current === entry.target);
-          if (idx !== -1) onActiveChange?.(idx, total);
-        }
-      },
-      { rootMargin: "-50% 0px -50% 0px", threshold: 0 }
-    );
+  const lastPhoto = photos[count - 1];
 
-    for (const sectionRef of sectionRefs) {
-      if (sectionRef.current) observer.observe(sectionRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, [cards.length, sectionRefs, onActiveChange]);
+  // Height is capped by the shorter half so the card always clears the chrome.
+  const cardWidth = `min(calc((50dvh - ${tuning.chromeGap}px) * 0.8), ${tuning.maxCardVw}vw, 300px)`;
 
   return (
-    <div className="relative">
-      {cards.map((card, i) => (
-        <PhotoCard
-          key={card.id}
-          front={card.front}
-          back={card.back}
-          album={album}
-          nextAlbum={nextAlbum}
-          index={i}
-          peekPaperCount={Math.min(2, cards.length - 1 - i)}
-          tuning={tuning}
-          onFlip={() => play()}
-          sectionRef={sectionRefs[i]}
-        />
-      ))}
-    </div>
+    <>
+      <div
+        ref={containerRef}
+        style={{
+          height: `calc(${count} * ${tuning.scrollPerCard}dvh + 100dvh)`,
+          ["--card-w" as string]: cardWidth,
+        }}
+      >
+        <div className="sticky top-0 h-dvh overflow-hidden">
+          <div className="absolute inset-0" style={{ perspective: 1800 }}>
+            {/* The fold every print hinges on. */}
+            <div
+              aria-hidden
+              className="absolute inset-x-0 top-1/2 h-px bg-black/[0.07] dark:bg-white/[0.07]"
+            />
+
+            {/* Bottom of the pile — the last photo's notes, once it empties. */}
+            <div className="absolute inset-x-0 top-1/2 z-0 flex h-0 items-start justify-center">
+              <div
+                className="hairline grain aspect-[4/5] w-[var(--card-w)] overflow-hidden rounded-2xl bg-paper dark:bg-paper-dark"
+                style={{ ["--grain-opacity" as string]: tuning.grainPaper }}
+              >
+                {lastPhoto ? <ExifBack photo={lastPhoto} compact /> : null}
+              </div>
+            </div>
+
+            {photos.map((photo, i) => (
+              <CardSlice
+                key={photo.slug}
+                photo={photo}
+                back={
+                  i === 0
+                    ? { kind: "intro" }
+                    : { kind: "exif", photo: photos[i - 1] }
+                }
+                album={album}
+                index={i}
+                total={count}
+                start={i / count}
+                end={(i + tuning.flipSpan) / count}
+                scrollYProgress={scrollYProgress}
+                tuning={tuning}
+                onFlip={() => play()}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Closing panel, after the pinned stage has released. */}
+      <div
+        className="relative flex min-h-[85dvh] items-center justify-center px-6"
+        style={{ ["--card-w" as string]: cardWidth }}
+      >
+        <div className="hairline aspect-[4/5] w-[var(--card-w)] overflow-hidden rounded-2xl">
+          <OutroPanel album={album} nextAlbum={nextAlbum} />
+        </div>
+      </div>
+    </>
   );
 }
+
+function CardSlice({
+  scrollYProgress,
+  start,
+  end,
+  ...rest
+}: {
+  scrollYProgress: ReturnType<typeof useScroll>["scrollYProgress"];
+  start: number;
+  end: number;
+} & Omit<React.ComponentProps<typeof PhotoCard>, "progress">) {
+  const progress = useTransform(scrollYProgress, [start, end], [0, 1], {
+    clamp: true,
+  });
+  return <PhotoCard {...rest} progress={progress} />;
+}
+
+export type { CardBack };
