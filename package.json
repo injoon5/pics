@@ -1,0 +1,46 @@
+{
+  "name": "flipbook",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "analyze:palettes": "node scripts/analyze-palettes.mjs",
+    "harness": "node harness/capture.mjs",
+    "harness:screenshots": "node harness/capture.mjs screenshots",
+    "harness:video": "node harness/capture.mjs video",
+    "harness:video:audio": "node harness/capture.mjs video --audio",
+    "harness:all": "node harness/capture.mjs all --audio"
+  },
+  "dependencies": {
+    "@base-ui/react": "^1.6.0",
+    "@number-flow/react": "^0.6.2",
+    "@web-kits/audio": "^0.1.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "exifr": "^7.1.3",
+    "interlude-ui": "^1.2.2",
+    "motion": "^12.43.0",
+    "next": "16.2.12",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "sonner": "^2.0.7",
+    "thumbhash": "^0.1.1",
+    "torph": "^0.0.9",
+    "zustand": "^5.0.14"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "dialkit": "^1.4.3",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.12",
+    "playwright": "^1.62.0",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

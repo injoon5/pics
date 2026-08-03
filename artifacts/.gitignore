@@ -1,0 +1,3 @@
+# Keep the directory; ignore captured binaries (see harness/README.md).
+*
+!.gitignore

@@ -1,0 +1,56 @@
+{
+  "0AC1BB00-8C93-4F82-9C83-33436BC20098_1_105_c.jpeg": {
+    "topBand": "oklch(0.345 0.029 260.1)",
+    "bottomBand": "oklch(0.273 0.025 72.5)",
+    "shadowHue": 52,
+    "meanL": 0.391,
+    "themeColor": "oklch(0.285 0.014 52.0)",
+    "blurTop": 0.493,
+    "blurBottom": 0.584
+  },
+  "7A415A50-CA9E-4FCD-939C-C288399514AD_1_105_c.jpeg": {
+    "topBand": "oklch(0.682 0.023 322.4)",
+    "bottomBand": "oklch(0.351 0.011 21.7)",
+    "shadowHue": 11,
+    "meanL": 0.534,
+    "themeColor": "oklch(0.912 0.014 11.0)",
+    "blurTop": 0.621,
+    "blurBottom": 0.642
+  },
+  "8C7ADF19-6C90-49C8-B0CD-FB07C1163C0F_1_105_c.jpeg": {
+    "topBand": "oklch(0.767 0.016 252.5)",
+    "bottomBand": "oklch(0.479 0.065 129.0)",
+    "shadowHue": 127,
+    "meanL": 0.562,
+    "themeColor": "oklch(0.912 0.014 127.0)",
+    "blurTop": 0.685,
+    "blurBottom": 0.637
+  },
+  "AD0590D4-82B3-43B3-ADED-564AC1E2DA56_1_105_c.jpeg": {
+    "topBand": "oklch(0.674 0.084 248.5)",
+    "bottomBand": "oklch(0.436 0.009 293.6)",
+    "shadowHue": 293,
+    "meanL": 0.479,
+    "themeColor": "oklch(0.912 0.014 293.0)",
+    "blurTop": 0.847,
+    "blurBottom": 0.435
+  },
+  "E751B9B9-54AA-4A27-883C-40FB02777A0A_1_105_c.jpeg": {
+    "topBand": "oklch(0.318 0.018 277.2)",
+    "bottomBand": "oklch(0.140 0.017 358.2)",
+    "shadowHue": 334,
+    "meanL": 0.327,
+    "themeColor": "oklch(0.263 0.014 334.0)",
+    "blurTop": 0.41,
+    "blurBottom": 0.663
+  },
+  "FEA65A2C-108D-4AFC-A148-2AD38E2EDDC2_1_105_c.jpeg": {
+    "topBand": "oklch(0.314 0.027 250.0)",
+    "bottomBand": "oklch(0.228 0.010 127.9)",
+    "shadowHue": 227,
+    "meanL": 0.286,
+    "themeColor": "oklch(0.248 0.014 227.0)",
+    "blurTop": 0.46,
+    "blurBottom": 0.459
+  }
+}
